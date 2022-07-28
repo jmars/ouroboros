@@ -76,29 +76,25 @@ let LiteralBooleanInterplet = function(v: boolean): LiteralBooleanInterplet {
 }
 
 interface LiteralNullInterplet extends AstInterplet {
-  value: null;
   interpret(self: LiteralNullInterplet, context: Context, frame: Frame): Value;
 }
 
-let LiteralNullInterplet = function(v: null): LiteralNullInterplet {
+let LiteralNullInterplet = function(): LiteralNullInterplet {
   return {
-    value: v,
     interpret: function(self) {
-      return self.value;
+      return null;
     }
   };
 }
 
 interface LiteralUndefinedInterplet extends AstInterplet {
-  value: undefined;
   interpret(self: LiteralUndefinedInterplet, context: Context, frame: Frame): Value;
 }
 
-let LiteralUndefinedInterplet = function(v: undefined): LiteralUndefinedInterplet {
+let LiteralUndefinedInterplet = function(): LiteralUndefinedInterplet {
   return {
-    value: v,
     interpret: function(self) {
-      return self.value;
+      return undefined;
     }
   };
 }
@@ -209,6 +205,14 @@ export let createAst = function(parsed: Node): AstInterplet {
 
     if (value.type === "Boolean") {
       return LiteralBooleanInterplet(value.value);
+    } else if (value.type === "Null") {
+      return LiteralNullInterplet();
+    } else if (value.type === "Number") {
+      return LiteralNumberInterplet(value.value);
+    } else if (value.type === "String") {
+      return LiteralStringInterplet(value.value);
+    } else if (value.type === "Undefined") {
+      return LiteralUndefinedInterplet();
     }
   } else if (parsed.type === "BinaryNode") {
     if (parsed.id === "=" && parsed.assignment) {

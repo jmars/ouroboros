@@ -9,12 +9,9 @@
       "id": "(name)"
     },
     "right": {
-      "type": "LiteralNode",
-      "value": {
-        "type": "Boolean",
-        "value": true
-      },
-      "id": "true"
+      "type": "Name",
+      "value": "undefined",
+      "id": "(name)"
     }
   }
 ]
