@@ -20,3 +20,4 @@ The subset used to bootstrap the parser and interpreter is as minimal as possibl
 * No dangling commas
 * Semicolons are mandatory
 * No new keyword or classes
+* no `this` keyword or automated object method scoping
