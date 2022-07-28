@@ -114,6 +114,7 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
         let expr = self.expressions[i];
         let value = expr.interpret(expr, context, frame);
         result = [...result, value];
+        i = i + 1;
       }
       return result;
     }
@@ -313,6 +314,25 @@ export let createAst = function(parsed: Node): AstInterplet {
       }
 
       return LiteralObjectInterplet(keys, values);
+    } else if (parsed.id === "[") {
+      let values: AstInterplet[] = [];
+      let i = 0;
+      let value = parsed.value;
+
+      if (value.type !== "NodeList") {
+        throw Error("Invalid array literal");
+      }
+
+      let children = value.children;
+
+      while (i < length(children)) {
+        let node = children[i];
+        values = [...values, createAst(node)];
+
+        i = i + 1;
+      }
+
+      return LiteralArrayInterplet(values);
     }
   }
   console.log("Unhandled", parsed);

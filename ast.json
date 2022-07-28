@@ -10,56 +10,71 @@
     },
     "right": {
       "type": "UnaryNode",
-      "id": "{",
+      "id": "[",
       "value": {
         "type": "NodeList",
+        "id": "[",
         "children": [
           {
-            "type": "BinaryNode",
-            "assignment": false,
-            "id": ":",
-            "left": {
-              "type": "Name",
-              "value": "foo",
-              "id": "(name)"
+            "type": "LiteralNode",
+            "id": "(literal)",
+            "value": {
+              "type": "Number",
+              "value": 1
+            }
+          },
+          {
+            "type": "LiteralNode",
+            "value": {
+              "type": "Boolean",
+              "value": true
             },
-            "right": {
-              "type": "BinaryNode",
-              "left": {
-                "type": "BinaryNode",
-                "left": {
-                  "type": "LiteralNode",
-                  "id": "(literal)",
-                  "value": {
-                    "type": "Number",
-                    "value": 1
+            "id": "true"
+          },
+          {
+            "type": "LiteralNode",
+            "value": {
+              "type": "Null"
+            },
+            "id": "null"
+          },
+          {
+            "type": "LiteralNode",
+            "id": "(literal)",
+            "value": {
+              "type": "String",
+              "value": "foo"
+            }
+          },
+          {
+            "type": "UnaryNode",
+            "id": "{",
+            "value": {
+              "type": "NodeList",
+              "children": [
+                {
+                  "type": "BinaryNode",
+                  "assignment": false,
+                  "id": ":",
+                  "left": {
+                    "type": "Name",
+                    "value": "foo",
+                    "id": "(name)"
+                  },
+                  "right": {
+                    "type": "LiteralNode",
+                    "id": "(literal)",
+                    "value": {
+                      "type": "String",
+                      "value": "bar"
+                    }
                   }
-                },
-                "right": {
-                  "type": "LiteralNode",
-                  "id": "(literal)",
-                  "value": {
-                    "type": "Number",
-                    "value": 1
-                  }
-                },
-                "assignment": false,
-                "id": "+"
-              },
-              "right": {
-                "type": "LiteralNode",
-                "id": "(literal)",
-                "value": {
-                  "type": "Number",
-                  "value": 2
                 }
-              },
-              "assignment": false,
-              "id": "==="
+              ],
+              "id": "{"
             }
           }
-        ],
-        "id": "{"
+        ]
       }
     }
   }
