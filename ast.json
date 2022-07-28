@@ -5,6 +5,55 @@
     "id": "=",
     "left": {
       "type": "Name",
+      "value": "b",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "LiteralNode",
+      "id": "(literal)",
+      "value": {
+        "type": "String",
+        "value": "boo"
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "=",
+    "left": {
+      "type": "Name",
+      "value": "c",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "BinaryNode",
+      "left": {
+        "type": "LiteralNode",
+        "id": "(literal)",
+        "value": {
+          "type": "Number",
+          "value": 1
+        }
+      },
+      "right": {
+        "type": "LiteralNode",
+        "id": "(literal)",
+        "value": {
+          "type": "Number",
+          "value": 1
+        }
+      },
+      "assignment": false,
+      "id": "+"
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "=",
+    "left": {
+      "type": "Name",
       "value": "a",
       "id": "(name)"
     },
@@ -73,6 +122,16 @@
               ],
               "id": "{"
             }
+          },
+          {
+            "type": "Name",
+            "value": "b",
+            "id": "(name)"
+          },
+          {
+            "type": "Name",
+            "value": "c",
+            "id": "(name)"
           }
         ]
       }

@@ -19,11 +19,11 @@ interface FunctionValue {
   body: AstInterplet;
 }
 
-interface Context {
+export interface Context {
   globals: Record<string, Value>;
 }
 
-interface Frame {
+export interface Frame {
   caller: Frame;
   function: FunctionValue;
   locals: Record<string, Value>;
@@ -122,12 +122,12 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
 }
 
 interface LiteralObjectInterplet extends AstInterplet {
-  keys: Array<AstInterplet>;
+  keys: Array<string>;
   values: Array<AstInterplet>;
   interpret(self: LiteralObjectInterplet, context: Context, frame: Frame): Value;
 }
 
-let LiteralObjectInterplet = function(keys: Array<AstInterplet>, values: Array<AstInterplet>): LiteralObjectInterplet {
+let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInterplet>): LiteralObjectInterplet {
   return {
     keys: keys,
     values: values,
@@ -135,7 +135,7 @@ let LiteralObjectInterplet = function(keys: Array<AstInterplet>, values: Array<A
       let result: Value = {};
       let i = 0;
       while (i < length(self.keys)) {
-        let key = self.keys[i].interpret(self.keys[i], context, frame);
+        let key = self.keys[i];
         let value = self.values[i].interpret(self.values[i], context, frame);
         if (typeof key !== "string") {
           throw Error("Invalid object key");
@@ -152,33 +152,27 @@ let LiteralObjectInterplet = function(keys: Array<AstInterplet>, values: Array<A
 }
 
 interface AssignmentInterplet extends AstInterplet {
-  name: AstInterplet;
+  name: string;
   value: AstInterplet;
   interpret(self: AssignmentInterplet, context: Context, frame: Frame): Value;
 }
 
-let AssignmentInterplet = function(name: AstInterplet, value: AstInterplet): AssignmentInterplet {
+let AssignmentInterplet = function(name: string, value: AstInterplet): AssignmentInterplet {
   return {
     name: name,
     value: value,
     interpret: function(self, context, frame) {
-      let n = self.name.interpret(self.name, context, frame);
-
-      if (typeof n !== "string") {
-        throw Error("Invalid variable name");
-      }
-
       let v = self.value.interpret(self.value, context, frame);
 
       if (frame === null) {
         context.globals = {
           ...context.globals,
-          [n]: v
+          [self.name]: v
         }
       } else {
         frame.locals = {
           ...frame.locals,
-          [n]: v
+          [self.name]: v
         };
       }
 
@@ -188,15 +182,23 @@ let AssignmentInterplet = function(name: AstInterplet, value: AstInterplet): Ass
 }
 
 interface NameInterplet extends AstInterplet {
-  name: Value;
+  name: string;
   interpret(self: NameInterplet, context: Context, frame: Frame): Value;
 }
 
 let NameInterplet = function(name: string): NameInterplet {
   return {
     name: name,
-    interpret: function(self) {
-      return self.name;
+    interpret: function(self, context, frame) {
+      if (frame !== null && frame[self.name] !== undefined) {
+        return frame[self.name];
+      }
+
+      if (context.globals[self.name] !== undefined) {
+        return context.globals[self.name];
+      }
+
+      throw Error("Variable " + "'" + self.name + "'" + " does not exist");
     }
   }
 }
@@ -278,18 +280,24 @@ export let createAst = function(parsed: Node): AstInterplet {
       return LiteralUndefinedInterplet();
     }
   } else if (parsed.type === "BinaryNode") {
-    let left = createAst(parsed.left);
     let right = createAst(parsed.right);
     if (parsed.id === "=" && parsed.assignment) {
-      return AssignmentInterplet(left, right);
+      let left = parsed.left;
+      
+      if (left.type !== "Name") {
+        throw Error("Invalid assignment name");
+      }
+
+      return AssignmentInterplet(left.value, right);
     } else if (indexOf(operators, parsed.id) > -1) {
+      let left = createAst(parsed.left);
       return OperatorInterplet(parsed.id, left, right);
     }
   } else if (parsed.type === "Name") {
     return NameInterplet(parsed.value);
   } else if (parsed.type === "UnaryNode") {
     if (parsed.id === "{") {
-      let keys: AstInterplet[] = [];
+      let keys: string[] = [];
       let values: AstInterplet[] = [];
       let i = 0;
       let value = parsed.value;
@@ -307,7 +315,13 @@ export let createAst = function(parsed: Node): AstInterplet {
           throw Error("Invalid object key value pair");
         }
 
-        keys = [...keys, createAst(node.left)];
+        let left = node.left;
+
+        if (left.type !== "Name") {
+          throw Error("Invalid object key");
+        }
+
+        keys = [...keys, left.value];
         values = [...values, createAst(node.right)];
 
         i = i + 1;

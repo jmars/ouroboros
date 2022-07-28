@@ -1,4 +1,4 @@
-import { createAst } from './astinterp';
+import { Context, createAst } from './astinterp';
 import tokenize from './lexer';
 import parse from './parser';
 
@@ -12,8 +12,15 @@ try {
   const tree = parse(tokens);
   const treeJSON = JSON.stringify(tree, null, 2);
   Bun.write(Bun.file("./ast.json"), treeJSON);
-  const interp = createAst(tree[0]);
-  console.log(interp.interpret(interp, {}, null));
+
+  let context: Context = { globals: {} };
+
+  for (const node of tree) {
+    const interp = createAst(node);
+    interp.interpret(interp, context, null);
+  }
+
+  console.log(context);
 } catch (e) {
   if (typeof e === "string") {
     throw new Error(e);
