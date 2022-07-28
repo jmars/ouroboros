@@ -143,6 +143,7 @@ let LiteralObjectInterplet = function(keys: Array<AstInterplet>, values: Array<A
           [key]: value,
           ...result
         };
+        i = i + 1;
       }
       return result;
     }
@@ -285,6 +286,34 @@ export let createAst = function(parsed: Node): AstInterplet {
     }
   } else if (parsed.type === "Name") {
     return NameInterplet(parsed.value);
+  } else if (parsed.type === "UnaryNode") {
+    if (parsed.id === "{") {
+      let keys: AstInterplet[] = [];
+      let values: AstInterplet[] = [];
+      let i = 0;
+      let value = parsed.value;
+
+      if (value.type !== "NodeList") {
+        throw Error("Invalid object literal");
+      }
+
+      let children = value.children;
+
+      while (i < length(children)) {
+        let node = children[i];
+
+        if (node.type !== "BinaryNode" || node.id !== ":") {
+          throw Error("Invalid object key value pair");
+        }
+
+        keys = [...keys, createAst(node.left)];
+        values = [...values, createAst(node.right)];
+
+        i = i + 1;
+      }
+
+      return LiteralObjectInterplet(keys, values);
+    }
   }
   console.log("Unhandled", parsed);
 };
