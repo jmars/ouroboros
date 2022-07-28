@@ -30,7 +30,7 @@ interface Frame {
 }
 
 interface AstInterplet {
-  interpret(self: AstInterplet, context: Context, frame: Frame): Value;
+  interpret(self: AstInterplet, context: Context, frame: Frame | null): Value;
 }
 
 interface LiteralStringInterplet extends AstInterplet {
@@ -153,6 +153,56 @@ let LiteralObjectInterplet = function(keys: Array<AstInterplet>, values: Array<A
   };
 }
 
+interface AssignmentInterplet extends AstInterplet {
+  name: AstInterplet;
+  value: AstInterplet;
+  interpret(self: AssignmentInterplet, context: Context, frame: Frame): Value;
+}
+
+let AssignmentInterplet = function(name: AstInterplet, value: AstInterplet): AssignmentInterplet {
+  return {
+    name: name,
+    value: value,
+    interpret: function(self, context, frame) {
+      let n = self.name.interpret(self.name, context, frame);
+
+      if (typeof n !== "string") {
+        throw Error("Invalid variable name");
+      }
+
+      let v = self.value.interpret(self.value, context, frame);
+
+      if (frame === null) {
+        context.globals = {
+          ...context.globals,
+          [n]: v
+        }
+      } else {
+        frame.locals = {
+          ...frame.locals,
+          [n]: v
+        };
+      }
+
+      return v;
+    }
+  }
+}
+
+interface NameInterplet extends AstInterplet {
+  name: Value;
+  interpret(self: NameInterplet, context: Context, frame: Frame): Value;
+}
+
+let NameInterplet = function(name: string): NameInterplet {
+  return {
+    name: name,
+    interpret: function(self) {
+      return self.name;
+    }
+  }
+}
+
 export let createAst = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -162,9 +212,12 @@ export let createAst = function(parsed: Node): AstInterplet {
     }
   } else if (parsed.type === "BinaryNode") {
     if (parsed.id === "=" && parsed.assignment) {
-      // TODO
-      return createAst(parsed.right);
+      let left = createAst(parsed.left);
+      let right = createAst(parsed.right);
+      return AssignmentInterplet(left, right);
     }
+  } else if (parsed.type === "Name") {
+    return NameInterplet(parsed.value);
   }
   console.log('Unhandled', parsed);
 };

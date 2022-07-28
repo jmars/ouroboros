@@ -13,7 +13,7 @@ try {
   const treeJSON = JSON.stringify(tree, null, 2);
   Bun.write(Bun.file("./ast.json"), treeJSON);
   const interp = createAst(tree[0]);
-  console.log(interp.interpret(interp, {}, {}));
+  console.log(interp.interpret(interp, {}, null));
 } catch (e) {
   if (typeof e === "string") {
     throw new Error(e);
