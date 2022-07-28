@@ -54,6 +54,62 @@
     "id": "=",
     "left": {
       "type": "Name",
+      "value": "f",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "FunctionNode",
+      "id": "function",
+      "name": "",
+      "parameters": {
+        "type": "NodeList",
+        "id": "parameters",
+        "children": [
+          {
+            "type": "Name",
+            "value": "a",
+            "id": "(name)"
+          },
+          {
+            "type": "Name",
+            "value": "b",
+            "id": "(name)"
+          }
+        ]
+      },
+      "body": {
+        "type": "NodeList",
+        "id": "body",
+        "children": [
+          {
+            "type": "StatementNode",
+            "id": "return",
+            "value": {
+              "type": "BinaryNode",
+              "left": {
+                "type": "Name",
+                "value": "a",
+                "id": "(name)"
+              },
+              "right": {
+                "type": "Name",
+                "value": "b",
+                "id": "(name)"
+              },
+              "assignment": false,
+              "id": "+"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "=",
+    "left": {
+      "type": "Name",
       "value": "a",
       "id": "(name)"
     },
@@ -132,6 +188,38 @@
             "type": "Name",
             "value": "c",
             "id": "(name)"
+          },
+          {
+            "type": "BinaryNode",
+            "id": "(",
+            "left": {
+              "type": "Name",
+              "value": "f",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "NodeList",
+              "id": "(",
+              "children": [
+                {
+                  "type": "LiteralNode",
+                  "id": "(literal)",
+                  "value": {
+                    "type": "Number",
+                    "value": 3
+                  }
+                },
+                {
+                  "type": "LiteralNode",
+                  "id": "(literal)",
+                  "value": {
+                    "type": "Number",
+                    "value": 3
+                  }
+                }
+              ]
+            },
+            "assignment": false
           }
         ]
       }

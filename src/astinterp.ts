@@ -11,12 +11,20 @@ type Value
   | ValueRecord
   | FunctionValue;
 
-interface ValueArray extends Array<Value> {};
-interface ValueRecord extends Record<string, Value> {};
+interface ValueArray {
+  type: "array";
+  values: Value[];
+};
+
+interface ValueRecord {
+  type: "object";
+  values: Record<string, Value>;
+};
 
 interface FunctionValue {
+  type: "function",
   parameters: string[];
-  body: AstInterplet;
+  body: AstInterplet[];
 }
 
 export interface Context {
@@ -25,8 +33,8 @@ export interface Context {
 
 export interface Frame {
   caller: Frame;
-  function: FunctionValue;
   locals: Record<string, Value>;
+  ret: Value;
 }
 
 interface AstInterplet {
@@ -108,7 +116,7 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
   return {
     expressions: v,
     interpret: function(self, context, frame) {
-      let result: Value = [];
+      let result: Value[] = [];
       let i = 0;
       while (i < length(self.expressions)) {
         let expr = self.expressions[i];
@@ -116,7 +124,10 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
         result = [...result, value];
         i = i + 1;
       }
-      return result;
+      return {
+        type: "array",
+        values: result
+      };
     }
   };
 }
@@ -132,7 +143,7 @@ let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInte
     keys: keys,
     values: values,
     interpret: function(self, context, frame) {
-      let result: Value = {};
+      let result: Record<string, Value> = {};
       let i = 0;
       while (i < length(self.keys)) {
         let key = self.keys[i];
@@ -146,7 +157,10 @@ let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInte
         };
         i = i + 1;
       }
-      return result;
+      return {
+        type: "object",
+        values: result
+      };
     }
   };
 }
@@ -190,8 +204,8 @@ let NameInterplet = function(name: string): NameInterplet {
   return {
     name: name,
     interpret: function(self, context, frame) {
-      if (frame !== null && frame[self.name] !== undefined) {
-        return frame[self.name];
+      if (frame !== null && frame.locals[self.name] !== undefined) {
+        return frame.locals[self.name];
       }
 
       if (context.globals[self.name] !== undefined) {
@@ -264,6 +278,91 @@ let OperatorInterplet = function(operator: string, left: AstInterplet, right: As
   }
 }
 
+interface FunctionInterplet extends AstInterplet {
+  parameters: string[];
+  body: AstInterplet[];
+  interpret(self: FunctionInterplet, context: Context, frame: Frame): Value;
+}
+
+let FunctionInterplet = function(parameters: string[], body: AstInterplet[]): FunctionInterplet {
+  return {
+    parameters: parameters,
+    body: body,
+    interpret: function(self): FunctionValue {
+      return {
+        type: "function",
+        parameters: self.parameters,
+        body: self.body
+      }
+    }
+  }
+}
+
+interface ReturnInterplet extends AstInterplet {
+  value: AstInterplet,
+  interpret(self: ReturnInterplet, context: Context, frame: Frame): Value;
+}
+
+let ReturnInterplet = function(value: AstInterplet): ReturnInterplet {
+  return {
+    value: value,
+    interpret: function(self, context, frame): Value {
+      frame.ret = value.interpret(value, context, frame);
+      return frame.ret;
+    }
+  }
+}
+
+interface CallInterplet extends AstInterplet {
+  func: AstInterplet,
+  args: AstInterplet[],
+  interpret(self: CallInterplet, context: Context, frame: Frame): Value;
+}
+
+let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInterplet {
+  return {
+    func: func,
+    args: args,
+    interpret: function(self, context, frame): Value {
+      let f = self.func.interpret(self.func, context, frame);
+
+      if (typeof f !== "object" || f.type !== "function") {
+        throw Error("Attempt to call non-function");
+      }
+
+      let locals: Record<string, Value> = {};
+      let i = 0;
+
+      while (i < length(self.args)) {
+        let a = self.args[i];
+        locals = {
+          ...locals,
+          [f.parameters[i]]: a.interpret(a, context, frame)
+        }
+        
+        i = i + 1;
+      }
+
+      let stack: Frame = {
+        caller: frame,
+        locals: locals,
+        ret: undefined
+      }
+
+      i = 0;
+
+      while (i < length(f.body)) {
+        let s = f.body[i];
+        s.interpret(s, context, stack);
+
+        i = i + 1;
+      }
+
+      return stack.ret;
+    }
+  }
+}
+
 export let createAst = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -280,9 +379,9 @@ export let createAst = function(parsed: Node): AstInterplet {
       return LiteralUndefinedInterplet();
     }
   } else if (parsed.type === "BinaryNode") {
-    let right = createAst(parsed.right);
     if (parsed.id === "=" && parsed.assignment) {
       let left = parsed.left;
+      let right = createAst(parsed.right);
       
       if (left.type !== "Name") {
         throw Error("Invalid assignment name");
@@ -291,7 +390,27 @@ export let createAst = function(parsed: Node): AstInterplet {
       return AssignmentInterplet(left.value, right);
     } else if (indexOf(operators, parsed.id) > -1) {
       let left = createAst(parsed.left);
+      let right = createAst(parsed.right);
       return OperatorInterplet(parsed.id, left, right);
+    } else if (parsed.id === "(") {
+      let left = createAst(parsed.left);
+      let right = parsed.right;
+      
+      if (right.type !== "NodeList") {
+        throw Error("Invalid function call");
+      }
+
+      let args: AstInterplet[] = [];
+      let i = 0;
+
+      while (i < length(right.children)) {
+        let a = createAst(right.children[i]);
+        args = [...args, a];
+
+        i = i + 1;
+      }
+
+      return CallInterplet(left, args);
     }
   } else if (parsed.type === "Name") {
     return NameInterplet(parsed.value);
@@ -347,6 +466,39 @@ export let createAst = function(parsed: Node): AstInterplet {
       }
 
       return LiteralArrayInterplet(values);
+    }
+  } else if (parsed.type === "FunctionNode") {
+    let parameters: string[] = [];
+    let body: AstInterplet[] = [];
+    let i = 0;
+
+    while (i < length(parsed.parameters.children)) {
+      let node = parsed.parameters.children[i];
+
+      if (node.type !== "Name") {
+        throw Error("Invalid function parameter");
+      }
+
+      parameters = [...parameters, node.value];
+
+      i = i + 1;
+    }
+
+    i = 0;
+
+    while (i < length(parsed.body.children)) {
+      let node = parsed.body.children[i];
+      let interp = createAst(node);
+
+      body = [...body, interp];
+
+      i = i + 1;
+    }
+
+    return FunctionInterplet(parameters, body);
+  } else if (parsed.type === "StatementNode") {
+    if (parsed.id === "return") {
+      return ReturnInterplet(createAst(parsed.value));
     }
   }
   console.log("Unhandled", parsed);
