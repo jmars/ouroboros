@@ -9,9 +9,25 @@
       "id": "(name)"
     },
     "right": {
-      "type": "Name",
-      "value": "undefined",
-      "id": "(name)"
+      "type": "BinaryNode",
+      "left": {
+        "type": "LiteralNode",
+        "id": "(literal)",
+        "value": {
+          "type": "Number",
+          "value": 3
+        }
+      },
+      "right": {
+        "type": "LiteralNode",
+        "id": "(literal)",
+        "value": {
+          "type": "Number",
+          "value": 3
+        }
+      },
+      "assignment": false,
+      "id": "**"
     }
   }
 ]

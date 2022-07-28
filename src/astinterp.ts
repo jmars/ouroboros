@@ -1,5 +1,5 @@
-import { Node } from './parser';
-import { length, indexOf, parseFloat, isFinite} from './util';
+import { Node } from "./parser";
+import { length, indexOf, parseFloat, isFinite} from "./util";
 
 type Value
   = string
@@ -199,6 +199,63 @@ let NameInterplet = function(name: string): NameInterplet {
   }
 }
 
+let operators = ["+", "-", "/", "*", "**", ">", ">=", "<", "<=", "&&", "||"];
+
+interface OperatorInterplet extends AstInterplet {
+  operator: string,
+  left: AstInterplet,
+  right: AstInterplet,
+  interpret(self: OperatorInterplet, context: Context, frame: Frame): Value;
+}
+
+let OperatorInterplet = function(operator: string, left: AstInterplet, right: AstInterplet): OperatorInterplet {
+  return {
+    operator: operator,
+    left: left,
+    right: right,
+    interpret: function(self, context, frame) {
+      let left = self.left.interpret(self.left, context, frame);
+      let right = self.right.interpret(self.right, context, frame);
+
+      if (self.operator === "&&" || self.operator === "||") {
+        if (typeof left !== "boolean" || typeof right !== "boolean") {
+          throw Error("&& or || values must be boolean");
+        }
+
+        if (self.operator === "&&") {
+          return left && right;
+        } else {
+          return left || right;
+        }
+      } else {
+        if (typeof left !== "number" || typeof right !== "number") {
+          throw Error("Arithmetic can only be performed on numbers");
+        }
+
+        if (self.operator === "+") {
+          return left + right;
+        } else if (self.operator === '-') {
+          return left - right;
+        } else if (self.operator === "/") {
+          return left / right;
+        } else if (self.operator === "*") {
+          return left * right;
+        } else if (self.operator === "**") {
+          return left ** right;
+        } else if (self.operator === ">") {
+          return left > right;
+        } else if (self.operator === ">=") {
+          return left >= right;
+        } else if (self.operator === "<") {
+          return left < right;
+        } else if (self.operator === "<=") {
+          return left <= right;
+        }
+      }
+    }
+  }
+}
+
 export let createAst = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -215,13 +272,15 @@ export let createAst = function(parsed: Node): AstInterplet {
       return LiteralUndefinedInterplet();
     }
   } else if (parsed.type === "BinaryNode") {
+    let left = createAst(parsed.left);
+    let right = createAst(parsed.right);
     if (parsed.id === "=" && parsed.assignment) {
-      let left = createAst(parsed.left);
-      let right = createAst(parsed.right);
       return AssignmentInterplet(left, right);
+    } else if (indexOf(operators, parsed.id) > -1) {
+      return OperatorInterplet(parsed.id, left, right);
     }
   } else if (parsed.type === "Name") {
     return NameInterplet(parsed.value);
   }
-  console.log('Unhandled', parsed);
+  console.log("Unhandled", parsed);
 };
