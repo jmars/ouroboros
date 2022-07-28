@@ -199,7 +199,7 @@ let NameInterplet = function(name: string): NameInterplet {
   }
 }
 
-let operators = ["+", "-", "/", "*", "**", ">", ">=", "<", "<=", "&&", "||"];
+let operators = ["+", "-", "/", "*", "**", ">", ">=", "<", "<=", "&&", "||", "===", "!=="];
 
 interface OperatorInterplet extends AstInterplet {
   operator: string,
@@ -227,6 +227,10 @@ let OperatorInterplet = function(operator: string, left: AstInterplet, right: As
         } else {
           return left || right;
         }
+      } else if (self.operator === "===") {
+        return left === right;
+      } else if (self.operator === "!==") {
+        return left !== right;
       } else {
         if (typeof left !== "number" || typeof right !== "number") {
           throw Error("Arithmetic can only be performed on numbers");

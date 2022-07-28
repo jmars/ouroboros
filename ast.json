@@ -23,11 +23,11 @@
         "id": "(literal)",
         "value": {
           "type": "Number",
-          "value": 3
+          "value": 6
         }
       },
       "assignment": false,
-      "id": "**"
+      "id": "!=="
     }
   }
 ]
