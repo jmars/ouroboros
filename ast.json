@@ -252,5 +252,68 @@
       },
       "assignment": false
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "=",
+    "left": {
+      "type": "Name",
+      "value": "e",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "children": [
+          {
+            "type": "BinaryNode",
+            "assignment": false,
+            "id": ":",
+            "left": {
+              "type": "Name",
+              "value": "test",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "LiteralNode",
+              "id": "(literal)",
+              "value": {
+                "type": "String",
+                "value": "makeitlookeasy"
+              }
+            }
+          }
+        ],
+        "id": "{"
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "=",
+    "left": {
+      "type": "Name",
+      "value": "g",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "BinaryNode",
+      "id": ".",
+      "left": {
+        "type": "Name",
+        "value": "e",
+        "id": "(name)"
+      },
+      "right": {
+        "type": "Name",
+        "value": "test",
+        "id": "(name)"
+      },
+      "assignment": false
+    }
   }
 ]

@@ -400,6 +400,32 @@ let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexI
   }
 }
 
+interface DotInterplet extends AstInterplet {
+  target: AstInterplet;
+  key: string;
+  interpret(self: DotInterplet, context: Context, frame: Frame): Value;
+}
+
+let DotInterplet = function(target: AstInterplet, key: string): DotInterplet {
+  return {
+    target: target,
+    key: key,
+    interpret: function(self, context, frame): Value {
+      let target = self.target.interpret(self.target, context, frame);
+
+      if (typeof target !== "object" || target.type !== "object") {
+        throw Error("Dot syntax can only be used on objects");
+      }
+
+      if (indexOf(target.keys, self.key) === -1) {
+        throw Error("Key does not exist on object");
+      }
+
+      return target.values[indexOf(target.keys, self.key)];
+    }
+  }
+}
+
 export let createAst = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -453,6 +479,15 @@ export let createAst = function(parsed: Node): AstInterplet {
       let right = createAst(parsed.right);
 
       return IndexInterplet(left, right);
+    } else if (parsed.id === ".") {
+      let left = createAst(parsed.left);
+      let right = parsed.right;
+    
+      if (right.type !== "Name") {
+        throw Error("Invalid dot access");
+      }
+
+      return DotInterplet(left, right.value);
     }
   } else if (parsed.type === "Name") {
     return NameInterplet(parsed.value);
