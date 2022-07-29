@@ -7,7 +7,9 @@ export let length = function<T>(v: string | Array<T>): number {
         return i;
       }
       i = i + 1;
-    } catch (e) {}
+    } catch (e) {
+      return i;
+    }
   }
 };
 
