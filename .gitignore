@@ -4,3 +4,4 @@ zig-out
 src/*.js
 *.lockb
 node_modules
+out.*

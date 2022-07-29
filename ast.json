@@ -2,7 +2,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "b",
@@ -20,7 +20,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "c",
@@ -51,7 +51,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "f",
@@ -107,7 +107,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "a",
@@ -228,7 +228,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "d",
@@ -256,7 +256,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "e",
@@ -294,7 +294,7 @@
   {
     "type": "BinaryNode",
     "assignment": true,
-    "id": "=",
+    "id": "let",
     "left": {
       "type": "Name",
       "value": "g",

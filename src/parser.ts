@@ -737,7 +737,7 @@ stmt("let", function () {
     return {
       type: "BinaryNode",
       assignment: true,
-      id: "=",
+      id: "let",
       left: n,
       right: {
         type: "LiteralNode",
@@ -751,7 +751,7 @@ stmt("let", function () {
   let assignment: BinaryNode = {
     type: "BinaryNode",
     assignment: true,
-    id: "=",
+    id: "let",
     left: n,
     right: expression(0)
   };

@@ -184,6 +184,38 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
       let v = self.value.interpret(self.value, context, frame);
 
       if (frame === null) {
+        if (indexOf(context.globals, self.name) === -1) {
+          throw Error("Assignment to undeclared variable");
+        }
+        context.globals = [...context.globals, self.name];
+        context.values = [...context.values, v];
+      } else {
+        if (indexOf(frame.locals, self.name) === -1) {
+          throw Error("Assignment to undeclared variable");
+        }
+        frame.locals = [...frame.locals, self.name];
+        frame.values = [...frame.values, v];
+      }
+
+      return v;
+    }
+  }
+}
+
+interface LetInterplet extends AstInterplet {
+  name: string;
+  value: AstInterplet;
+  interpret(self: LetInterplet, context: Context, frame: Frame): Value;
+}
+
+let LetInterplet = function(name: string, value: AstInterplet): LetInterplet {
+  return {
+    name: name,
+    value: value,
+    interpret: function(self, context, frame) {
+      let v = self.value.interpret(self.value, context, frame);
+
+      if (frame === null) {
         context.globals = [...context.globals, self.name];
         context.values = [...context.values, v];
       } else {
@@ -451,6 +483,15 @@ export let createAst = function(parsed: Node): AstInterplet {
       }
 
       return AssignmentInterplet(left.value, right);
+    } else if (parsed.id === "let" && parsed.assignment) {
+      let left = parsed.left;
+      let right = createAst(parsed.right);
+      
+      if (left.type !== "Name") {
+        throw Error("Invalid assignment name");
+      }
+
+      return LetInterplet(left.value, right);
     } else if (indexOf(operators, parsed.id) > -1) {
       let left = createAst(parsed.left);
       let right = createAst(parsed.right);
@@ -578,5 +619,6 @@ export let createAst = function(parsed: Node): AstInterplet {
       return ReturnInterplet(createAst(parsed.value));
     }
   }
-  console.log("Unhandled", parsed);
+  console.error("Unhandled", parsed);
+  throw Error("failed");
 };

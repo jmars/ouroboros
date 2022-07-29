@@ -2,10 +2,7 @@ import { Context, createAst } from './astinterp';
 import tokenize from './lexer';
 import parse from './parser';
 
-// let source = await Bun.file('./src/lexer.js').text();
-// source += await Bun.file('./src/parser.js').text();
-// source = source.replaceAll(/export default ([^;]+);/gi, '');
-let source = await Bun.file('./test.js').text();
+const source = await Bun.file("./test.js").text();
 
 try {
   const tokens = tokenize(source, "=<>!+-*&|/%^.".split(''), "=<>&|.*".split(''));
