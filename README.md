@@ -11,7 +11,9 @@ The subset used to bootstrap the parser and interpreter is as minimal as possibl
 
 * No Prototypes
 * Arrays have a static length
+* Arrays throw for out of bounds access
 * Objects have static keys (set at creation time)
+* Objects throw on invalid key access
 * No Coercion, operators that use it are missing or fail with incorrect left/right types
 * No `for` loops, only `while` loops
 * Limited set of arithmetic operators (no `++`, `--` prefix or postfix)

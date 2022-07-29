@@ -224,5 +224,33 @@
         ]
       }
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "=",
+    "left": {
+      "type": "Name",
+      "value": "d",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "BinaryNode",
+      "id": "[",
+      "left": {
+        "type": "Name",
+        "value": "a",
+        "id": "(name)"
+      },
+      "right": {
+        "type": "LiteralNode",
+        "id": "(literal)",
+        "value": {
+          "type": "Number",
+          "value": 5
+        }
+      },
+      "assignment": false
+    }
   }
 ]

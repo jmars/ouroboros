@@ -13,7 +13,7 @@ try {
   const treeJSON = JSON.stringify(tree, null, 2);
   Bun.write(Bun.file("./ast.json"), treeJSON);
 
-  let context: Context = { globals: {} };
+  let context: Context = { globals: [], values: [] };
 
   for (const node of tree) {
     const interp = createAst(node);

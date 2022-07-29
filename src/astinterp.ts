@@ -14,11 +14,13 @@ type Value
 interface ValueArray {
   type: "array";
   values: Value[];
+  length: number;
 };
 
 interface ValueRecord {
   type: "object";
-  values: Record<string, Value>;
+  values: Value[];
+  keys: string[];
 };
 
 interface FunctionValue {
@@ -28,12 +30,14 @@ interface FunctionValue {
 }
 
 export interface Context {
-  globals: Record<string, Value>;
+  globals: string[];
+  values: Value[];
 }
 
 export interface Frame {
   caller: Frame;
-  locals: Record<string, Value>;
+  locals: string[];
+  values: Value[];
   ret: Value;
 }
 
@@ -126,7 +130,8 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
       }
       return {
         type: "array",
-        values: result
+        values: result,
+        length: length(self.expressions)
       };
     }
   };
@@ -143,7 +148,8 @@ let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInte
     keys: keys,
     values: values,
     interpret: function(self, context, frame) {
-      let result: Record<string, Value> = {};
+      let keys: string[] = [];
+      let values: Value[] = [];
       let i = 0;
       while (i < length(self.keys)) {
         let key = self.keys[i];
@@ -151,15 +157,14 @@ let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInte
         if (typeof key !== "string") {
           throw Error("Invalid object key");
         }
-        result = {
-          [key]: value,
-          ...result
-        };
+        keys = [...keys, key];
+        values = [...values, value];
         i = i + 1;
       }
       return {
         type: "object",
-        values: result
+        values: values,
+        keys: keys
       };
     }
   };
@@ -179,15 +184,11 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
       let v = self.value.interpret(self.value, context, frame);
 
       if (frame === null) {
-        context.globals = {
-          ...context.globals,
-          [self.name]: v
-        }
+        context.globals = [...context.globals, self.name];
+        context.values = [...context.values, v];
       } else {
-        frame.locals = {
-          ...frame.locals,
-          [self.name]: v
-        };
+        frame.locals = [...frame.locals, self.name];
+        frame.values = [...frame.values, v];
       }
 
       return v;
@@ -204,12 +205,12 @@ let NameInterplet = function(name: string): NameInterplet {
   return {
     name: name,
     interpret: function(self, context, frame) {
-      if (frame !== null && frame.locals[self.name] !== undefined) {
-        return frame.locals[self.name];
+      if (frame !== null &&  indexOf(frame.locals, self.name) >= 0) {
+        return frame.values[indexOf(frame.locals, self.name)];
       }
 
-      if (context.globals[self.name] !== undefined) {
-        return context.globals[self.name];
+      if (indexOf(context.globals, self.name) >= 0) {
+        return context.values[indexOf(context.globals, self.name)];
       }
 
       throw Error("Variable " + "'" + self.name + "'" + " does not exist");
@@ -330,22 +331,21 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
         throw Error("Attempt to call non-function");
       }
 
-      let locals: Record<string, Value> = {};
+      let locals: string[] = [];
+      let values: Value[] = [];
       let i = 0;
 
       while (i < length(self.args)) {
         let a = self.args[i];
-        locals = {
-          ...locals,
-          [f.parameters[i]]: a.interpret(a, context, frame)
-        }
-        
+        locals = [...locals, f.parameters[i]];
+        values = [...values, a.interpret(a, context, frame)];
         i = i + 1;
       }
 
       let stack: Frame = {
         caller: frame,
         locals: locals,
+        values: values,
         ret: undefined
       }
 
@@ -359,6 +359,43 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       }
 
       return stack.ret;
+    }
+  }
+}
+
+interface IndexInterplet extends AstInterplet {
+  target: AstInterplet;
+  index: AstInterplet;
+  interpret(self: IndexInterplet, context: Context, frame: Frame): Value;
+}
+
+let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexInterplet {
+  return {
+    target: target,
+    index: index,
+    interpret: function(self, context, frame): Value {
+      let target = self.target.interpret(self.target, context, frame);
+      let index = self.index.interpret(self.index, context, frame);
+
+      if (typeof target === "object") {
+        if (target.type === "array" && typeof index === "number") {
+          if (index >= target.length) {
+            throw Error("Out of bounds index");
+          } else {
+            return target.values[index];
+          }
+        } else if (target.type === "function") {
+          throw Error("Cannot index function");
+        } else if (target.type === "object") {
+          if (typeof index !== "string") {
+            throw Error("Objects can only be indexed by strings");
+          }
+          if (indexOf(target.keys, index) === -1) {
+            throw Error("Key does not exist on object");
+          }
+          return target.values[indexOf(target.keys, index)];
+        }
+      }
     }
   }
 }
@@ -411,6 +448,11 @@ export let createAst = function(parsed: Node): AstInterplet {
       }
 
       return CallInterplet(left, args);
+    } else if (parsed.id === '[') {
+      let left = createAst(parsed.left);
+      let right = createAst(parsed.right);
+
+      return IndexInterplet(left, right);
     }
   } else if (parsed.type === "Name") {
     return NameInterplet(parsed.value);
