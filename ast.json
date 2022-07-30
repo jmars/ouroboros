@@ -315,5 +315,112 @@
       },
       "assignment": false
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "i",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "LiteralNode",
+      "id": "(literal)",
+      "value": {
+        "type": "Number",
+        "value": 0
+      }
+    }
+  },
+  {
+    "type": "StatementNode",
+    "id": "while",
+    "value": {
+      "type": "BinaryNode",
+      "id": "while",
+      "left": {
+        "type": "BinaryNode",
+        "left": {
+          "type": "Name",
+          "value": "i",
+          "id": "(name)"
+        },
+        "right": {
+          "type": "LiteralNode",
+          "id": "(literal)",
+          "value": {
+            "type": "Number",
+            "value": 10
+          }
+        },
+        "assignment": false,
+        "id": "<"
+      },
+      "right": {
+        "type": "StatementNode",
+        "id": "{",
+        "value": {
+          "type": "NodeList",
+          "id": "{",
+          "children": [
+            {
+              "type": "BinaryNode",
+              "id": "=",
+              "left": {
+                "type": "Name",
+                "value": "i",
+                "id": "(name)"
+              },
+              "right": {
+                "type": "BinaryNode",
+                "left": {
+                  "type": "Name",
+                  "value": "i",
+                  "id": "(name)"
+                },
+                "right": {
+                  "type": "LiteralNode",
+                  "id": "(literal)",
+                  "value": {
+                    "type": "Number",
+                    "value": 1
+                  }
+                },
+                "assignment": false,
+                "id": "+"
+              },
+              "assignment": true
+            },
+            {
+              "type": "StatementNode",
+              "id": "continue",
+              "value": {
+                "type": "Name",
+                "id": "continue",
+                "value": "continue"
+              }
+            }
+          ]
+        }
+      },
+      "assignment": false
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "z",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "Name",
+      "value": "i",
+      "id": "(name)"
+    }
   }
 ]

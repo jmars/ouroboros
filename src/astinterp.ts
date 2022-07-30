@@ -187,14 +187,12 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
         if (indexOf(context.globals, self.name) === -1) {
           throw Error("Assignment to undeclared variable");
         }
-        context.globals = [...context.globals, self.name];
-        context.values = [...context.values, v];
+        context.values[indexOf(context.globals, self.name)] = v;
       } else {
         if (indexOf(frame.locals, self.name) === -1) {
           throw Error("Assignment to undeclared variable");
         }
-        frame.locals = [...frame.locals, self.name];
-        frame.values = [...frame.values, v];
+        frame.values[indexOf(frame.locals, self.name)] = v;
       }
 
       return v;
@@ -458,6 +456,73 @@ let DotInterplet = function(target: AstInterplet, key: string): DotInterplet {
   }
 }
 
+interface WhileInterplet extends AstInterplet {
+  condition: AstInterplet;
+  block: AstInterplet[];
+  interpret(self: WhileInterplet, context: Context, frame: Frame): Value;
+}
+
+let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): WhileInterplet {
+  return {
+    condition: condition,
+    block: block,
+    interpret: function(self, context, frame): Value {
+      while (true) {
+        let condition = self.condition.interpret(self.condition, context, frame);
+
+        if (typeof condition !== "boolean") {
+          throw Error("Invalid while condition");
+        }
+
+        if (condition === false) {
+          break;
+        }
+
+        try {
+          let i = 0;
+          while (i < length(self.block)) {
+            self.block[i].interpret(self.block[i], context, frame);
+            i = i + 1;
+          }
+        } catch (e) {
+          if (e === "break") {
+            break;
+          }
+          if (e === "continue") {
+            continue;
+          }
+        }
+      }
+
+      return undefined;
+    }
+  }
+}
+
+interface BreakInterplet extends AstInterplet {
+  interpret(self: BreakInterplet, context: Context, frame: Frame): Value;
+}
+
+let BreakInterplet = function(): BreakInterplet {
+  return {
+    interpret: function(self, context, frame): Value {
+      throw "break";
+    }
+  }
+}
+
+interface ContinueInterplet extends AstInterplet {
+  interpret(self: ContinueInterplet, context: Context, frame: Frame): Value;
+}
+
+let ContinueInterplet = function(): ContinueInterplet {
+  return {
+    interpret: function(self, context, frame): Value {
+      throw "continue";
+    }
+  }
+}
+
 export let createAst = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -617,6 +682,38 @@ export let createAst = function(parsed: Node): AstInterplet {
   } else if (parsed.type === "StatementNode") {
     if (parsed.id === "return") {
       return ReturnInterplet(createAst(parsed.value));
+    } else if (parsed.id === "while") {
+      let value = parsed.value;
+
+      if (value.type !== "BinaryNode") {
+        throw Error("Invalid while loop");
+      }
+
+      let left = createAst(value.left);
+      let right = value.right;
+
+      if (right.type !== "StatementNode") {
+        throw Error("Invalid while block");
+      }
+
+      let body = right.value;
+
+      if (body.type !== "NodeList") {
+        throw Error("Invalid while body")
+      }
+
+      let i = 0;
+      let block: AstInterplet[] = [];
+      while (i < length(body.children)) {
+        block = [...block, createAst(body.children[i])];
+        i = i + 1;
+      }
+
+      return WhileInterplet(left, block);
+    } else if (parsed.id === "break") {
+      return BreakInterplet();
+    } else if (parsed.id === "continue") {
+      return ContinueInterplet();
     }
   }
   console.error("Unhandled", parsed);
