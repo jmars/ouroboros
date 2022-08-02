@@ -36,3 +36,4 @@ let fd = function(a) {
   return false;
 };
 let fz = fd(false);
+let aa = -1;

@@ -10,7 +10,7 @@ try {
   const treeJSON = JSON.stringify(tree, null, 2);
   Bun.write(Bun.file("./ast.json"), treeJSON);
 
-  let frame: Frame = { locals: [], values: [], ret: undefined, globals: null };
+  let frame: Frame = { locals: [], values: [], ret: undefined, globals: null, finished: false };
 
   for (const node of tree) {
     const interp = createAst(node);

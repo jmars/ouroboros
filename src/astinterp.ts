@@ -616,6 +616,24 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
   }
 }
 
+interface NegativeInterplet extends AstInterplet {
+  value: AstInterplet;
+  interpret(self: NegativeInterplet, frame: Frame): Value;
+}
+
+let NegativeInterplet = function(value: AstInterplet): NegativeInterplet {
+  return {
+    value: value,
+    interpret: function(self, frame): Value {
+      let result = self.value.interpret(self.value, frame);
+      if (typeof result !== "number") {
+        throw Error("Invalid negative value: must be a number");
+      }
+      return -result;
+    }
+  }
+}
+
 export let createAst = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -742,6 +760,9 @@ export let createAst = function(parsed: Node): AstInterplet {
       }
 
       return LiteralArrayInterplet(values);
+    } else if (parsed.id === "-") {
+      let value = createAst(parsed.value);
+      return NegativeInterplet(value);
     }
   } else if (parsed.type === "FunctionNode") {
     let parameters: string[] = [];
