@@ -775,10 +775,10 @@ stmt("if", function () {
   } else {
     third = {
       type: "StatementNode",
-      id: 'if',
+      id: '{',
       value: {
         type: 'NodeList',
-        id: 'if',
+        id: '{',
         children: []
       }
     };

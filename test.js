@@ -30,11 +30,14 @@ let ff = function(a) {
 };
 let fe = ff(true);
 let fd = function(a) {
-  if (a) {
+  if (a === false) {
     return true;
+  } else if (a === "foo") {
+    return "wut";
   }
   return false;
 };
 let fz = fd(false);
 let aa = -1;
 let zz = typeof "test";
+let ze = fd("foo");

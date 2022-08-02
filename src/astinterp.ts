@@ -599,6 +599,7 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
     interpret: function(self, frame): Value {
       let condition = self.condition.interpret(self.condition, frame);
       if (typeof condition !== "boolean") {
+        console.log(condition);
         throw Error("Invalid if condition: must be boolean");
       }
       let block = self.ifFalse;
@@ -895,19 +896,23 @@ export let createInterp = function(parsed: Node): AstInterplet {
       if (ifTrue.type !== "NodeList") {
         throw Error("Invalid if true block");
       }
-      let ifFalse = parsed.third;
-      if (ifFalse.type !== "StatementNode") {
-        throw Error("Invalid if true block");
-      }
-      ifFalse = ifFalse.value;
-      if (ifFalse.type !== "NodeList") {
-        throw Error("Invalid if true block");
-      }
       let trueBlock = [];
       let i = 0;
       while (i < length(ifTrue.children)) {
         trueBlock = [...trueBlock, createInterp(ifTrue.children[i])];
         i = i + 1;
+      }
+      let ifFalse = parsed.third;
+      if (ifFalse.id === "if") {
+        return IfInterplet(expr, trueBlock, [createInterp(ifFalse)]);
+      }
+      if (ifFalse.type !== "StatementNode") {
+        console.log(ifFalse);
+        throw Error("Invalid if false block");
+      }
+      ifFalse = ifFalse.value;
+      if (ifFalse.type !== "NodeList") {
+        throw Error("Invalid if false block");
       }
       let falseBlock = [];
       i = 0;
