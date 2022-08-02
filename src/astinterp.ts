@@ -33,6 +33,7 @@ export interface Frame {
   locals: string[];
   values: Value[];
   ret: Value;
+  globals: Frame | null;
 }
 
 interface AstInterplet {
@@ -179,6 +180,12 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
 
       let index = lastIndexOf(frame.locals, self.name);
       if (index === -1) {
+        let globals = frame.globals;
+        if (globals !== null) {
+          index = lastIndexOf(globals.locals, self.name);
+          globals.values[index] = v;
+          return v;
+        }
         throw Error("Assignment to undeclared variable");
       }
       frame.values[index] = v;
@@ -341,9 +348,9 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
         throw Error("Attempt to call non-function");
       }
 
+      let i = 0;
       let locals: string[] = [];
       let values: Value[] = [];
-      let i = 0;
 
       while (i < length(self.args)) {
         let a = self.args[i];
@@ -355,7 +362,8 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       let stack: Frame = {
         locals: locals,
         values: values,
-        ret: undefined
+        ret: undefined,
+        globals: frame.globals === null ? frame : frame.globals
       }
 
       i = 0;

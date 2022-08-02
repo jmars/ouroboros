@@ -82,6 +82,24 @@
         "id": "body",
         "children": [
           {
+            "type": "BinaryNode",
+            "id": "=",
+            "left": {
+              "type": "Name",
+              "value": "c",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "LiteralNode",
+              "id": "(literal)",
+              "value": {
+                "type": "String",
+                "value": "bar"
+              }
+            },
+            "assignment": true
+          },
+          {
             "type": "StatementNode",
             "id": "return",
             "value": {
