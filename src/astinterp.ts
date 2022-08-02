@@ -34,6 +34,7 @@ export interface Frame {
   values: Value[];
   ret: Value;
   globals: Frame | null;
+  finished: boolean;
 }
 
 interface AstInterplet {
@@ -325,7 +326,8 @@ let ReturnInterplet = function(value: AstInterplet): ReturnInterplet {
   return {
     value: value,
     interpret: function(self, frame): Value {
-      frame.ret = value.interpret(value, frame);
+      frame.ret = self.value.interpret(self.value, frame);
+      frame.finished = true;
       return frame.ret;
     }
   }
@@ -363,7 +365,8 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
         locals: locals,
         values: values,
         ret: undefined,
-        globals: frame.globals === null ? frame : frame.globals
+        globals: frame.globals === null ? frame : frame.globals,
+        finished: false
       }
 
       i = 0;
@@ -371,6 +374,10 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       while (i < length(f.body)) {
         let s = f.body[i];
         s.interpret(s, stack);
+
+        if (stack.finished) {
+          break;
+        }
 
         i = i + 1;
       }
@@ -481,7 +488,7 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
         }
       }
 
-      return undefined;
+      return frame.ret;
     }
   }
 }
@@ -530,7 +537,7 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
           block[i].interpret(block[i], frame);
           i = i + 1;
         }
-        return undefined;
+        return frame.ret;
       } catch (err) {
         frame.locals = [...frame.locals, self.name];
         frame.values = [...frame.values, err];
@@ -557,7 +564,7 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
         }
         frame.locals = locals;
         frame.values = values;
-        return undefined;
+        return frame.ret;
       }
     }
   }
@@ -573,6 +580,38 @@ let ThrowInterplet = function(err: AstInterplet): ThrowInterplet {
     err: err,
     interpret: function(self, frame): Value {
       throw self.err.interpret(self.err, frame);
+    }
+  }
+}
+
+interface IfInterplet extends AstInterplet {
+  condition: AstInterplet;
+  ifTrue: AstInterplet[];
+  ifFalse: AstInterplet[];
+  interpret(self: IfInterplet, frame: Frame): Value;
+}
+
+let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFalse: AstInterplet[]): IfInterplet {
+  return {
+    condition: condition,
+    ifTrue: ifTrue,
+    ifFalse: ifFalse,
+    interpret: function(self, frame): Value {
+      let condition = self.condition.interpret(self.condition, frame);
+      if (typeof condition !== "boolean") {
+        throw Error("Invalid if condition: must be boolean");
+      }
+      let block = self.ifFalse;
+      if (condition) {
+        block = self.ifTrue;
+      }
+      let i = 0;
+      while (i < length(block)) {
+        let n = block[i];
+        n.interpret(n, frame);
+        i = i + 1;
+      }
+      return frame.ret;
     }
   }
 }
@@ -807,6 +846,38 @@ export let createAst = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
       return TryInterplet(block, second.value, guard);
+    } else if (parsed.id === "if") {
+      let expr = createAst(parsed.first);
+      let ifTrue = parsed.second;
+      if (ifTrue.type !== "StatementNode") {
+        throw Error("Invalid if true block");
+      }
+      ifTrue = ifTrue.value;
+      if (ifTrue.type !== "NodeList") {
+        throw Error("Invalid if true block");
+      }
+      let ifFalse = parsed.third;
+      if (ifFalse.type !== "StatementNode") {
+        throw Error("Invalid if true block");
+      }
+      ifFalse = ifFalse.value;
+      if (ifFalse.type !== "NodeList") {
+        throw Error("Invalid if true block");
+      }
+      let trueBlock = [];
+      let i = 0;
+      while (i < length(ifTrue.children)) {
+        trueBlock = [...trueBlock, createAst(ifTrue.children[i])];
+        i = i + 1;
+      }
+      let falseBlock = [];
+      i = 0;
+      while (i < length(ifFalse.children)) {
+        falseBlock = [...falseBlock, createAst(ifFalse.children[i])];
+        i = i + 1;
+      }
+
+      return IfInterplet(expr, trueBlock, falseBlock);
     }
   }
   console.error("Unhandled", parsed);

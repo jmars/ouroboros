@@ -21,3 +21,18 @@ try {
 } catch (e) {
   err = e;
 }
+let ff = function(a) {
+  if (a) {
+    return false;
+  } else {
+    return true;
+  }
+};
+let fe = ff(true);
+let fd = function(a) {
+  if (a) {
+    return true;
+  }
+  return false;
+};
+let fz = fd(false);
