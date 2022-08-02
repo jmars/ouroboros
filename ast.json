@@ -969,5 +969,90 @@
         ]
       }
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "yy",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "children": [
+          {
+            "type": "BinaryNode",
+            "assignment": false,
+            "id": ":",
+            "left": {
+              "type": "Name",
+              "value": "foo",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "LiteralNode",
+              "id": "(literal)",
+              "value": {
+                "type": "String",
+                "value": "bar"
+              }
+            }
+          }
+        ],
+        "id": "{"
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "yyy",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "children": [
+          {
+            "type": "UnaryNode",
+            "id": "...",
+            "value": {
+              "type": "Name",
+              "value": "yy",
+              "id": "(name)"
+            }
+          },
+          {
+            "type": "BinaryNode",
+            "assignment": false,
+            "id": ":",
+            "left": {
+              "type": "Name",
+              "value": "bar",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "LiteralNode",
+              "id": "(literal)",
+              "value": {
+                "type": "String",
+                "value": "foo"
+              }
+            }
+          }
+        ],
+        "id": "{"
+      }
+    }
   }
 ]

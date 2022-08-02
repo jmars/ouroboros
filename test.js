@@ -43,3 +43,5 @@ let zz = typeof "test";
 let ze = fd("foo");
 let zzz = [1,2,3];
 let arraySpread = [...zzz, 4];
+let yy = {foo: "bar"};
+let yyy = {...yy, bar: "foo"};

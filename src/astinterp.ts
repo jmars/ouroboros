@@ -32,7 +32,7 @@ interface FunctionValue {
 
 interface SpreadMarker {
   type: "spread";
-  value: ValueArray;
+  value: ValueArray | ValueRecord;
 }
 
 export interface Frame {
@@ -128,7 +128,12 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
         let expr = self.expressions[i];
         let value = expr.interpret(expr, frame);
         if (value !== null && typeof value === "object" && value.type === "spread") {
-          result = [...result, ...value.value.values];
+          let spread = value.value;
+          if (spread.type === "array") {
+            result = [...result, ...spread.values];
+          } else {
+            throw Error("Cannot spread an object into an array");
+          }
         } else {
           result = [...result, value];
         }
@@ -163,8 +168,18 @@ let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInte
         if (typeof key !== "string") {
           throw Error("Invalid object key");
         }
-        keys = [...keys, key];
-        values = [...values, value];
+        if (value !== null && typeof value === "object" && value.type === "spread") {
+          let spread = value.value;
+          if (spread.type === "object") {
+            keys = [...keys, ...spread.keys];
+            values = [...values, ...spread.values];
+          } else {
+            throw Error("Only objects can be spread into objects");
+          }
+        } else {
+          keys = [...keys, key];
+          values = [...values, value];
+        }
         i = i + 1;
       }
       return {
@@ -669,8 +684,8 @@ let SpreadInterplet = function(value: AstInterplet): SpreadInterplet {
     value: value,
     interpret: function(self, frame): Value {
       let target = self.value.interpret(self.value, frame);
-      if (typeof target !== "object" || target.type !== "array") {
-        throw Error("Can only spread arrays into arrays");
+      if (typeof target !== "object" || (target.type !== "array" && target.type !== "object")) {
+        throw Error("Can only spread objects and arrays");
       }
       return {
         type: "spread",
@@ -769,6 +784,13 @@ export let createInterp = function(parsed: Node): AstInterplet {
 
       while (i < length(children)) {
         let node = children[i];
+
+        if (node.id === "..." && node.type === "UnaryNode") {
+          keys = [...keys, ""];
+          values = [...values, createInterp(node)];
+          i = i + 1;
+          continue
+        }
 
         if (node.type !== "BinaryNode" || node.id !== ":") {
           throw Error("Invalid object key value pair");
