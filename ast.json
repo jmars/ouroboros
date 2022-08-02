@@ -1054,5 +1054,303 @@
         "id": "{"
       }
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "method",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "children": [
+          {
+            "type": "BinaryNode",
+            "assignment": false,
+            "id": ":",
+            "left": {
+              "type": "Name",
+              "value": "f",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "FunctionNode",
+              "id": "function",
+              "name": "",
+              "parameters": {
+                "type": "NodeList",
+                "id": "parameters",
+                "children": []
+              },
+              "body": {
+                "type": "NodeList",
+                "id": "body",
+                "children": [
+                  {
+                    "type": "StatementNode",
+                    "id": "return",
+                    "value": {
+                      "type": "LiteralNode",
+                      "value": {
+                        "type": "Boolean",
+                        "value": true
+                      },
+                      "id": "true"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "id": "{"
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "mr",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "TernaryNode",
+      "id": "(",
+      "first": {
+        "type": "Name",
+        "value": "method",
+        "id": "(name)"
+      },
+      "second": {
+        "type": "Name",
+        "value": "f",
+        "id": "(name)"
+      },
+      "third": {
+        "type": "NodeList",
+        "id": "(",
+        "children": []
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "nested",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "children": [
+          {
+            "type": "BinaryNode",
+            "assignment": false,
+            "id": ":",
+            "left": {
+              "type": "Name",
+              "value": "m",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "Name",
+              "value": "method",
+              "id": "(name)"
+            }
+          }
+        ],
+        "id": "{"
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "id": "=",
+    "left": {
+      "type": "BinaryNode",
+      "id": ".",
+      "left": {
+        "type": "Name",
+        "value": "method",
+        "id": "(name)"
+      },
+      "right": {
+        "type": "Name",
+        "value": "f",
+        "id": "(name)"
+      },
+      "assignment": false
+    },
+    "right": {
+      "type": "FunctionNode",
+      "id": "function",
+      "name": "",
+      "parameters": {
+        "type": "NodeList",
+        "id": "parameters",
+        "children": [
+          {
+            "type": "Name",
+            "value": "dd",
+            "id": "(name)"
+          }
+        ]
+      },
+      "body": {
+        "type": "NodeList",
+        "id": "body",
+        "children": [
+          {
+            "type": "BinaryNode",
+            "id": "=",
+            "left": {
+              "type": "Name",
+              "value": "dd",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "TernaryNode",
+              "id": "?",
+              "first": {
+                "type": "BinaryNode",
+                "left": {
+                  "type": "Name",
+                  "value": "dd",
+                  "id": "(name)"
+                },
+                "right": {
+                  "type": "LiteralNode",
+                  "value": {
+                    "type": "Undefined"
+                  },
+                  "id": "undefined"
+                },
+                "assignment": false,
+                "id": "==="
+              },
+              "second": {
+                "type": "LiteralNode",
+                "id": "(literal)",
+                "value": {
+                  "type": "Number",
+                  "value": 1
+                }
+              },
+              "third": {
+                "type": "Name",
+                "value": "dd",
+                "id": "(name)"
+              }
+            },
+            "assignment": true
+          },
+          {
+            "type": "StatementNode",
+            "id": "return",
+            "value": {
+              "type": "Name",
+              "value": "dd",
+              "id": "(name)"
+            }
+          }
+        ]
+      }
+    },
+    "assignment": true
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "nmr",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "TernaryNode",
+      "id": "(",
+      "first": {
+        "type": "BinaryNode",
+        "id": ".",
+        "left": {
+          "type": "Name",
+          "value": "nested",
+          "id": "(name)"
+        },
+        "right": {
+          "type": "Name",
+          "value": "m",
+          "id": "(name)"
+        },
+        "assignment": false
+      },
+      "second": {
+        "type": "Name",
+        "value": "f",
+        "id": "(name)"
+      },
+      "third": {
+        "type": "NodeList",
+        "id": "(",
+        "children": []
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "dynamic",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "TernaryNode",
+      "id": "(",
+      "first": {
+        "type": "BinaryNode",
+        "id": "[",
+        "left": {
+          "type": "Name",
+          "value": "nested",
+          "id": "(name)"
+        },
+        "right": {
+          "type": "LiteralNode",
+          "id": "(literal)",
+          "value": {
+            "type": "String",
+            "value": "m"
+          }
+        },
+        "assignment": false
+      },
+      "second": {
+        "type": "Name",
+        "value": "f",
+        "id": "(name)"
+      },
+      "third": {
+        "type": "NodeList",
+        "id": "(",
+        "children": []
+      }
+    }
   }
 ]

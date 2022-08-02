@@ -221,6 +221,37 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
   }
 }
 
+interface ObjectAssignmentInterplet extends AstInterplet {
+  target: AstInterplet;
+  name: string;
+  value: AstInterplet;
+  interpret(self: ObjectAssignmentInterplet, frame: Frame): Value;
+}
+
+let ObjectAssignmentInterplet = function(target: AstInterplet, name: string, value: AstInterplet): ObjectAssignmentInterplet {
+  return {
+    target: target,
+    name: name,
+    value: value,
+    interpret: function(self, frame) {
+      let v = self.value.interpret(self.value, frame);
+      let target = self.target.interpret(self.target, frame);
+
+      if (target === null || typeof target !== "object" || target.type !== "object") {
+        throw Error("Can only assign to objects");
+      }
+
+      let index = lastIndexOf(target.keys, self.name);
+      if (index === -1) {
+        throw Error("Assignment to missing key");
+      }
+      target.values[index] = v;
+
+      return v;
+    }
+  }
+}
+
 interface LetInterplet extends AstInterplet {
   name: string;
   value: AstInterplet;
@@ -252,8 +283,19 @@ let NameInterplet = function(name: string): NameInterplet {
     name: name,
     interpret: function(self, frame) {
       let index = lastIndexOf(frame.locals, self.name);
+
       if (index >= 0) {
         return frame.values[index];
+      }
+
+      let globals = frame.globals;
+
+      if (globals !== null) {
+        index = lastIndexOf(globals.locals, self.name);
+      }
+
+      if (index >= 0) {
+        return globals.values[index];
       }
 
       throw Error("Variable " + "'" + self.name + "'" + " does not exist");
@@ -378,11 +420,85 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       let i = 0;
       let locals: string[] = [];
       let values: Value[] = [];
+      let argI = length(self.args);
 
-      while (i < length(self.args)) {
-        let a = self.args[i];
-        locals = [...locals, f.parameters[i]];
-        values = [...values, a.interpret(a, frame)];
+      while (i < length(f.parameters)) {
+        if (i >= argI) {
+          locals = [...locals, f.parameters[i]];
+          values = [...values, undefined]; 
+        } else {
+          let a = self.args[i];
+          locals = [...locals, f.parameters[i]];
+          values = [...values, a.interpret(a, frame)];
+        }
+        i = i + 1;
+      }
+
+      let stack: Frame = {
+        locals: locals,
+        values: values,
+        ret: undefined,
+        globals: frame.globals === null ? frame : frame.globals,
+        finished: false
+      }
+
+      i = 0;
+
+      while (i < length(f.body)) {
+        let s = f.body[i];
+        s.interpret(s, stack);
+
+        if (stack.finished) {
+          break;
+        }
+
+        i = i + 1;
+      }
+
+      return stack.ret;
+    }
+  }
+}
+
+interface MethodCallInterplet extends AstInterplet {
+  obj: AstInterplet,
+  func: string,
+  args: AstInterplet[],
+  interpret(self: MethodCallInterplet, frame: Frame): Value;
+}
+
+let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInterplet[]): MethodCallInterplet {
+  return {
+    obj: obj,
+    func: func,
+    args: args,
+    interpret: function(self, frame): Value {
+      let obj = self.obj.interpret(self.obj, frame);
+      
+      if (obj === null || typeof obj !== "object" || obj.type !== "object") {
+        throw Error("Method calls are only allowed on objects")
+      }
+
+      let f = obj.values[indexOf(obj.keys, self.func)];
+
+      if (typeof f !== "object" || f.type !== "function") {
+        throw Error("Attempt to call non-function");
+      }
+
+      let i = 0;
+      let locals: string[] = [];
+      let values: Value[] = [];
+      let argI = length(self.args);
+
+      while (i < length(f.parameters)) {
+        if (i >= argI) {
+          locals = [...locals, f.parameters[i]];
+          values = [...values, undefined]; 
+        } else {
+          let a = self.args[i];
+          locals = [...locals, f.parameters[i]];
+          values = [...values, a.interpret(a, frame)];
+        }
         i = i + 1;
       }
 
@@ -641,6 +757,32 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
   }
 }
 
+interface TernaryIfInterplet extends AstInterplet {
+  condition: AstInterplet;
+  ifTrue: AstInterplet;
+  ifFalse: AstInterplet;
+  interpret(self: TernaryIfInterplet, frame: Frame): Value;
+}
+
+let TernaryIfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet, ifFalse: AstInterplet): TernaryIfInterplet {
+  return {
+    condition: condition,
+    ifTrue: ifTrue,
+    ifFalse: ifFalse,
+    interpret: function(self, frame): Value {
+      let condition = self.condition.interpret(self.condition, frame);
+      if (typeof condition !== "boolean") {
+        throw Error("Invalid if condition: must be boolean");
+      }
+      let expr = self.ifFalse;
+      if (condition) {
+        expr = self.ifTrue;
+      }
+      return expr.interpret(expr, frame);
+    }
+  }
+}
+
 interface NegativeInterplet extends AstInterplet {
   value: AstInterplet;
   interpret(self: NegativeInterplet, frame: Frame): Value;
@@ -713,13 +855,22 @@ export let createInterp = function(parsed: Node): AstInterplet {
   } else if (parsed.type === "BinaryNode") {
     if (parsed.id === "=" && parsed.assignment) {
       let left = parsed.left;
-      let right = createInterp(parsed.right);
+      let right = parsed.right;
       
       if (left.type !== "Name") {
-        throw Error("Invalid assignment name");
+        if (left.type !== "BinaryNode") {
+          throw Error("Invalid assignment");
+        }
+        let name = left.right;
+        if (name.type !== "Name") {
+          throw Error("Invalid assignment");
+        }
+        let target = left.left;
+        
+        return ObjectAssignmentInterplet(createInterp(target), name.value, createInterp(right));
       }
 
-      return AssignmentInterplet(left.value, right);
+      return AssignmentInterplet(left.value, createInterp(right));
     } else if (parsed.id === "let" && parsed.assignment) {
       let left = parsed.left;
       let right = createInterp(parsed.right);
@@ -976,6 +1127,37 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
 
       return IfInterplet(expr, trueBlock, falseBlock);
+    } else if (parsed.id === "(") {
+      let first = createInterp(parsed.first);
+      let second = parsed.second;
+
+      if (second.type !== "Name") {
+        throw Error("Invalid method name");
+      }
+
+      let third = parsed.third;
+      
+      if (third.type !== "NodeList") {
+        throw Error("Invalid function call");
+      }
+
+      let args: AstInterplet[] = [];
+      let i = 0;
+
+      while (i < length(third.children)) {
+        let a = createInterp(third.children[i]);
+        args = [...args, a];
+
+        i = i + 1;
+      }
+
+      return MethodCallInterplet(first, second.value, args);
+    } else if (parsed.id === "?") {
+      let condition = createInterp(parsed.first);
+      let ifTrue = createInterp(parsed.second);
+      let ifFalse = createInterp(parsed.third);
+
+      return TernaryIfInterplet(condition, ifTrue, ifFalse);
     }
   }
   console.error("Unhandled", parsed);

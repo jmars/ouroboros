@@ -45,3 +45,18 @@ let zzz = [1,2,3];
 let arraySpread = [...zzz, 4];
 let yy = {foo: "bar"};
 let yyy = {...yy, bar: "foo"};
+let method = {
+  f: function() {
+    return true;
+  }
+};
+let mr = method.f();
+let nested = {
+  m: method
+};
+method.f = function(dd) {
+  dd = dd === undefined ? 1 : dd;
+  return dd;
+};
+let nmr = nested.m.f();
+let dynamic = nested["m"].f();

@@ -318,7 +318,7 @@ let block = function () {
 };
 
 let symbol = function (id: Id, bp?: number): ParseLet {
-  bp = bp || 0;
+  bp = bp === undefined ? 0 : bp;
   let s = symbol_table[id];
 
   if (s) {
@@ -362,15 +362,19 @@ let constant = function (s: Id, v: Literal): ParseLet {
 let infix = function (id: Id, bp: number, led?: ParseLet["led"]): ParseLet {
   let s = symbol(id, bp);
   s.type = "BinaryNode";
-  s.led = led || function (parselet, left) {
-    return {
-      type: "BinaryNode",
-      left: left,
-      right: expression(parselet.lbp),
-      assignment: false,
-      id: parselet.id
-    }
-  };
+  if (led !== undefined) {
+    s.led = led;
+  } else {
+    s.led = function (parselet, left) {
+      return {
+        type: "BinaryNode",
+        left: left,
+        right: expression(parselet.lbp),
+        assignment: false,
+        id: parselet.id
+      }
+    };
+  }
   return s;
 };
 
@@ -449,6 +453,7 @@ symbol("...");
 constant("true", TRUE);
 constant("false", FALSE);
 constant("null", NULL);
+constant("undefined", UNDEFINED);
 
 symbol("(literal)");
 

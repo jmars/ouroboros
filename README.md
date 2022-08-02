@@ -23,3 +23,6 @@ The subset used to bootstrap the parser and interpreter is as minimal as possibl
 * Semicolons are mandatory
 * No new keyword or classes
 * no `this` keyword or automated object method scoping
+* no dynamic method lookup (`obj["func"](arg)`, including array indexing)
+
+Some of these might be relaxed in the future in cases where the parser can figure out that the expression is actually static despite using dynamic syntax.
