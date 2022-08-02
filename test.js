@@ -37,3 +37,4 @@ let fd = function(a) {
 };
 let fz = fd(false);
 let aa = -1;
+let zz = typeof "test";

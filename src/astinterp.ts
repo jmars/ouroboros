@@ -127,7 +127,7 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
       return {
         type: "array",
         values: result,
-        length: length(self.expressions)
+        length: i
       };
     }
   };
@@ -634,7 +634,22 @@ let NegativeInterplet = function(value: AstInterplet): NegativeInterplet {
   }
 }
 
-export let createAst = function(parsed: Node): AstInterplet {
+interface TypeofInterplet extends AstInterplet {
+  value: AstInterplet;
+  interpret(self: TypeofInterplet, frame: Frame): Value;
+}
+
+let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
+  return {
+    value: value,
+    interpret: function(self, frame): Value {
+      let result = self.value.interpret(self.value, frame);
+      return typeof result;
+    }
+  }
+}
+
+export let createInterp = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
 
@@ -652,7 +667,7 @@ export let createAst = function(parsed: Node): AstInterplet {
   } else if (parsed.type === "BinaryNode") {
     if (parsed.id === "=" && parsed.assignment) {
       let left = parsed.left;
-      let right = createAst(parsed.right);
+      let right = createInterp(parsed.right);
       
       if (left.type !== "Name") {
         throw Error("Invalid assignment name");
@@ -661,7 +676,7 @@ export let createAst = function(parsed: Node): AstInterplet {
       return AssignmentInterplet(left.value, right);
     } else if (parsed.id === "let" && parsed.assignment) {
       let left = parsed.left;
-      let right = createAst(parsed.right);
+      let right = createInterp(parsed.right);
       
       if (left.type !== "Name") {
         throw Error("Invalid assignment name");
@@ -669,11 +684,11 @@ export let createAst = function(parsed: Node): AstInterplet {
 
       return LetInterplet(left.value, right);
     } else if (indexOf(operators, parsed.id) > -1) {
-      let left = createAst(parsed.left);
-      let right = createAst(parsed.right);
+      let left = createInterp(parsed.left);
+      let right = createInterp(parsed.right);
       return OperatorInterplet(parsed.id, left, right);
     } else if (parsed.id === "(") {
-      let left = createAst(parsed.left);
+      let left = createInterp(parsed.left);
       let right = parsed.right;
       
       if (right.type !== "NodeList") {
@@ -684,7 +699,7 @@ export let createAst = function(parsed: Node): AstInterplet {
       let i = 0;
 
       while (i < length(right.children)) {
-        let a = createAst(right.children[i]);
+        let a = createInterp(right.children[i]);
         args = [...args, a];
 
         i = i + 1;
@@ -692,12 +707,12 @@ export let createAst = function(parsed: Node): AstInterplet {
 
       return CallInterplet(left, args);
     } else if (parsed.id === '[') {
-      let left = createAst(parsed.left);
-      let right = createAst(parsed.right);
+      let left = createInterp(parsed.left);
+      let right = createInterp(parsed.right);
 
       return IndexInterplet(left, right);
     } else if (parsed.id === ".") {
-      let left = createAst(parsed.left);
+      let left = createInterp(parsed.left);
       let right = parsed.right;
     
       if (right.type !== "Name") {
@@ -735,7 +750,7 @@ export let createAst = function(parsed: Node): AstInterplet {
         }
 
         keys = [...keys, left.value];
-        values = [...values, createAst(node.right)];
+        values = [...values, createInterp(node.right)];
 
         i = i + 1;
       }
@@ -754,15 +769,18 @@ export let createAst = function(parsed: Node): AstInterplet {
 
       while (i < length(children)) {
         let node = children[i];
-        values = [...values, createAst(node)];
+        values = [...values, createInterp(node)];
 
         i = i + 1;
       }
 
       return LiteralArrayInterplet(values);
     } else if (parsed.id === "-") {
-      let value = createAst(parsed.value);
+      let value = createInterp(parsed.value);
       return NegativeInterplet(value);
+    } else if (parsed.id === "typeof") {
+      let value = createInterp(parsed.value);
+      return TypeofInterplet(value);
     }
   } else if (parsed.type === "FunctionNode") {
     let parameters: string[] = [];
@@ -785,7 +803,7 @@ export let createAst = function(parsed: Node): AstInterplet {
 
     while (i < length(parsed.body.children)) {
       let node = parsed.body.children[i];
-      let interp = createAst(node);
+      let interp = createInterp(node);
 
       body = [...body, interp];
 
@@ -795,7 +813,7 @@ export let createAst = function(parsed: Node): AstInterplet {
     return FunctionInterplet(parameters, body);
   } else if (parsed.type === "StatementNode") {
     if (parsed.id === "return") {
-      return ReturnInterplet(createAst(parsed.value));
+      return ReturnInterplet(createInterp(parsed.value));
     } else if (parsed.id === "while") {
       let value = parsed.value;
 
@@ -803,7 +821,7 @@ export let createAst = function(parsed: Node): AstInterplet {
         throw Error("Invalid while loop");
       }
 
-      let left = createAst(value.left);
+      let left = createInterp(value.left);
       let right = value.right;
 
       if (right.type !== "StatementNode") {
@@ -819,7 +837,7 @@ export let createAst = function(parsed: Node): AstInterplet {
       let i = 0;
       let block: AstInterplet[] = [];
       while (i < length(body.children)) {
-        block = [...block, createAst(body.children[i])];
+        block = [...block, createInterp(body.children[i])];
         i = i + 1;
       }
 
@@ -829,7 +847,7 @@ export let createAst = function(parsed: Node): AstInterplet {
     } else if (parsed.id === "continue") {
       return ContinueInterplet();
     } else if (parsed.id === "throw") {
-      let err = createAst(parsed.value);
+      let err = createInterp(parsed.value);
       return ThrowInterplet(err);
     }
   } else if (parsed.type === "TernaryNode") {
@@ -857,18 +875,18 @@ export let createAst = function(parsed: Node): AstInterplet {
       let block: AstInterplet[] = [];
       let i = 0;
       while (i < length(first.children)) {
-        block = [...block, createAst(first.children[i])];
+        block = [...block, createInterp(first.children[i])];
         i = i + 1;
       }
       let guard: AstInterplet[] = [];
       i = 0;
       while (i < length(third.children)) {
-        guard = [...guard, createAst(third.children[i])];
+        guard = [...guard, createInterp(third.children[i])];
         i = i + 1;
       }
       return TryInterplet(block, second.value, guard);
     } else if (parsed.id === "if") {
-      let expr = createAst(parsed.first);
+      let expr = createInterp(parsed.first);
       let ifTrue = parsed.second;
       if (ifTrue.type !== "StatementNode") {
         throw Error("Invalid if true block");
@@ -888,13 +906,13 @@ export let createAst = function(parsed: Node): AstInterplet {
       let trueBlock = [];
       let i = 0;
       while (i < length(ifTrue.children)) {
-        trueBlock = [...trueBlock, createAst(ifTrue.children[i])];
+        trueBlock = [...trueBlock, createInterp(ifTrue.children[i])];
         i = i + 1;
       }
       let falseBlock = [];
       i = 0;
       while (i < length(ifFalse.children)) {
-        falseBlock = [...falseBlock, createAst(ifFalse.children[i])];
+        falseBlock = [...falseBlock, createInterp(ifFalse.children[i])];
         i = i + 1;
       }
 

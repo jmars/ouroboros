@@ -1,4 +1,4 @@
-import { Frame, createAst } from './astinterp';
+import { Frame, createInterp } from './astinterp';
 import tokenize from './lexer';
 import parse from './parser';
 
@@ -13,7 +13,7 @@ try {
   let frame: Frame = { locals: [], values: [], ret: undefined, globals: null, finished: false };
 
   for (const node of tree) {
-    const interp = createAst(node);
+    const interp = createInterp(node);
     interp.interpret(interp, frame);
   }
 

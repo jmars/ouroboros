@@ -775,5 +775,27 @@
         }
       }
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "zz",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "typeof",
+      "value": {
+        "type": "LiteralNode",
+        "id": "(literal)",
+        "value": {
+          "type": "String",
+          "value": "test"
+        }
+      }
+    }
   }
 ]
