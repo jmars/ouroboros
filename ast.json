@@ -392,15 +392,6 @@
                 "id": "+"
               },
               "assignment": true
-            },
-            {
-              "type": "StatementNode",
-              "id": "continue",
-              "value": {
-                "type": "Name",
-                "id": "continue",
-                "value": "continue"
-              }
             }
           ]
         }
@@ -421,6 +412,80 @@
       "type": "Name",
       "value": "i",
       "id": "(name)"
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "err",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "LiteralNode",
+      "id": "(literal)",
+      "value": {
+        "type": "String",
+        "value": "no-error"
+      }
+    }
+  },
+  {
+    "type": "TernaryNode",
+    "id": "try",
+    "first": {
+      "type": "StatementNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "id": "{",
+        "children": [
+          {
+            "type": "StatementNode",
+            "id": "throw",
+            "value": {
+              "type": "LiteralNode",
+              "id": "(literal)",
+              "value": {
+                "type": "String",
+                "value": "test-error"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "second": {
+      "type": "Name",
+      "value": "e",
+      "id": "(name)"
+    },
+    "third": {
+      "type": "StatementNode",
+      "id": "{",
+      "value": {
+        "type": "NodeList",
+        "id": "{",
+        "children": [
+          {
+            "type": "BinaryNode",
+            "id": "=",
+            "left": {
+              "type": "Name",
+              "value": "err",
+              "id": "(name)"
+            },
+            "right": {
+              "type": "Name",
+              "value": "e",
+              "id": "(name)"
+            },
+            "assignment": true
+          }
+        ]
+      }
     }
   }
 ]

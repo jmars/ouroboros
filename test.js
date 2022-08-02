@@ -12,6 +12,11 @@ let g = e.test;
 let i = 0;
 while (i < 10) {
   i = i + 1;
-  continue;
 }
 let z = i;
+let err = "no-error";
+try {
+  throw "test-error";
+} catch (e) {
+  err = e;
+}

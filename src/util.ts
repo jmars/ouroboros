@@ -26,6 +26,19 @@ export let indexOf = function<T>(a: string | Array<T>, v: T): number {
   return -1;
 }
 
+export let lastIndexOf = function<T>(a: string | Array<T>, v: T): number {
+  let i = length(a) - 1;
+
+  while (i >= 0) {
+    if (a[i] === v) {
+      return i;
+    }
+    i = i - 1;
+  }
+
+  return -1;
+}
+
 let charVals = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export let parseInt = function(str: string) {
