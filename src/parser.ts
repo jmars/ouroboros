@@ -1,4 +1,5 @@
 import { Token } from './lexer';
+import { indexOf } from './util';
 
 type Id
   = "(name)"
@@ -149,7 +150,28 @@ export type Node
   | NodeList
   | EndNode
 
-let symbol_table: Record<string, ParseLet> = {};
+let symbol_table = {
+  keys: [],
+  values: [],
+  update: function(self: any, key: string, value: ParseLet): ParseLet {
+    let index = indexOf(self.keys, key);
+    if (index !== -1) {
+      self.values[index] = value;
+    } else {
+      self.keys = [...self.keys, key];
+      self.values = [...self.values, value];
+    }
+    return value;
+  },
+  read: function(self: any, key: string) {
+    let index = indexOf(self.keys, key);
+    if (index !== -1) {
+      return self.values[index];
+    } else {
+      return undefined;
+    }
+  }
+};
 let tokens: Token[];
 let token_nr: number = 0;
 let node: ParseLet;
@@ -160,7 +182,7 @@ let advance = function (id?: string): ParseLet {
     throw Error("Expected '" + id + "', got '" + node.id + "'");
   }
   if (token_nr >= tokens.length) {
-    node = symbol_table["(end)"];
+    node = symbol_table.read(symbol_table, "(end)");
     return node;
   }
   let t = tokens[token_nr];
@@ -172,7 +194,7 @@ let advance = function (id?: string): ParseLet {
     if (typeof v !== "string") {
       throw Error("Invalid name.");
     }
-    let s = symbol_table[v];
+    let s = symbol_table.read(symbol_table, v);
     if (s !== undefined && typeof s !== "function") {
       return s;
     } else {
@@ -194,7 +216,10 @@ let advance = function (id?: string): ParseLet {
       };
     }
   } else if (a === "operator") {
-    let o = symbol_table[v];
+    if (typeof v !== "string") {
+      throw Error("Invalid operator.");
+    }
+    let o = symbol_table.read(symbol_table, v);
     if (o === undefined) {
       throw Error("Unknown operator.");
     }
@@ -319,9 +344,9 @@ let block = function () {
 
 let symbol = function (id: Id, bp?: number): ParseLet {
   bp = bp === undefined ? 0 : bp;
-  let s = symbol_table[id];
+  let s = symbol_table.read(symbol_table, id);
 
-  if (s) {
+  if (s !== undefined) {
     if (bp >= s.lbp) {
       s.lbp = bp;
     }
@@ -340,7 +365,7 @@ let symbol = function (id: Id, bp?: number): ParseLet {
         throw Error("Missing operator.");
       }
     }
-    symbol_table[id] = s;
+    symbol_table.update(symbol_table, id, s);
     return s;
   }
 };
