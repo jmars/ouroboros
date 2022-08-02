@@ -599,7 +599,6 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
     interpret: function(self, frame): Value {
       let condition = self.condition.interpret(self.condition, frame);
       if (typeof condition !== "boolean") {
-        console.log(condition);
         throw Error("Invalid if condition: must be boolean");
       }
       let block = self.ifFalse;
