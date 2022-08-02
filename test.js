@@ -41,3 +41,5 @@ let fz = fd(false);
 let aa = -1;
 let zz = typeof "test";
 let ze = fd("foo");
+let zzz = [1,2,3];
+let arraySpread = [...zzz, 4];

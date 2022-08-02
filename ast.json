@@ -888,5 +888,86 @@
       },
       "assignment": false
     }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "zzz",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "[",
+      "value": {
+        "type": "NodeList",
+        "id": "[",
+        "children": [
+          {
+            "type": "LiteralNode",
+            "id": "(literal)",
+            "value": {
+              "type": "Number",
+              "value": 1
+            }
+          },
+          {
+            "type": "LiteralNode",
+            "id": "(literal)",
+            "value": {
+              "type": "Number",
+              "value": 2
+            }
+          },
+          {
+            "type": "LiteralNode",
+            "id": "(literal)",
+            "value": {
+              "type": "Number",
+              "value": 3
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "BinaryNode",
+    "assignment": true,
+    "id": "let",
+    "left": {
+      "type": "Name",
+      "value": "arraySpread",
+      "id": "(name)"
+    },
+    "right": {
+      "type": "UnaryNode",
+      "id": "[",
+      "value": {
+        "type": "NodeList",
+        "id": "[",
+        "children": [
+          {
+            "type": "UnaryNode",
+            "id": "...",
+            "value": {
+              "type": "Name",
+              "value": "zzz",
+              "id": "(name)"
+            }
+          },
+          {
+            "type": "LiteralNode",
+            "id": "(literal)",
+            "value": {
+              "type": "Number",
+              "value": 4
+            }
+          }
+        ]
+      }
+    }
   }
 ]

@@ -9,7 +9,8 @@ type Value
   | undefined
   | ValueArray
   | ValueRecord
-  | FunctionValue;
+  | FunctionValue
+  | SpreadMarker;
 
 interface ValueArray {
   type: "array";
@@ -24,9 +25,14 @@ interface ValueRecord {
 };
 
 interface FunctionValue {
-  type: "function",
+  type: "function";
   parameters: string[];
   body: AstInterplet[];
+}
+
+interface SpreadMarker {
+  type: "spread";
+  value: ValueArray;
 }
 
 export interface Frame {
@@ -121,13 +127,17 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
       while (i < length(self.expressions)) {
         let expr = self.expressions[i];
         let value = expr.interpret(expr, frame);
-        result = [...result, value];
+        if (value !== null && typeof value === "object" && value.type === "spread") {
+          result = [...result, ...value.value.values];
+        } else {
+          result = [...result, value];
+        }
         i = i + 1;
       }
       return {
         type: "array",
         values: result,
-        length: i
+        length: length(result)
       };
     }
   };
@@ -649,6 +659,27 @@ let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
   }
 }
 
+interface SpreadInterplet extends AstInterplet {
+  value: AstInterplet;
+  interpret(self: SpreadInterplet, frame: Frame): Value;
+}
+
+let SpreadInterplet = function(value: AstInterplet): SpreadInterplet {
+  return {
+    value: value,
+    interpret: function(self, frame): Value {
+      let target = self.value.interpret(self.value, frame);
+      if (typeof target !== "object" || target.type !== "array") {
+        throw Error("Can only spread arrays into arrays");
+      }
+      return {
+        type: "spread",
+        value: target
+      }
+    }
+  }
+}
+
 export let createInterp = function(parsed: Node): AstInterplet {
   if (parsed.type === "LiteralNode") {
     let value = parsed.value;
@@ -781,6 +812,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
     } else if (parsed.id === "typeof") {
       let value = createInterp(parsed.value);
       return TypeofInterplet(value);
+    } else if (parsed.id === "...") {
+      let value = createInterp(parsed.value);
+      return SpreadInterplet(value);
     }
   } else if (parsed.type === "FunctionNode") {
     let parameters: string[] = [];
@@ -906,7 +940,6 @@ export let createInterp = function(parsed: Node): AstInterplet {
         return IfInterplet(expr, trueBlock, [createInterp(ifFalse)]);
       }
       if (ifFalse.type !== "StatementNode") {
-        console.log(ifFalse);
         throw Error("Invalid if false block");
       }
       ifFalse = ifFalse.value;
