@@ -124,7 +124,8 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
     interpret: function(self, frame) {
       let result: Value[] = [];
       let i = 0;
-      while (i < length(self.expressions)) {
+      let l = length(self.expressions)
+      while (i < l) {
         let expr = self.expressions[i];
         let value = expr.interpret(expr, frame);
         if (value !== null && typeof value === "object" && value.type === "spread") {
@@ -162,7 +163,8 @@ let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInte
       let keys: string[] = [];
       let values: Value[] = [];
       let i = 0;
-      while (i < length(self.keys)) {
+      let l = length(self.keys);
+      while (i < l) {
         let key = self.keys[i];
         let value = self.values[i].interpret(self.values[i], frame);
         if (typeof key !== "string") {
@@ -421,8 +423,9 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       let locals: string[] = [];
       let values: Value[] = [];
       let argI = length(self.args);
+      let l = length(f.parameters);
 
-      while (i < length(f.parameters)) {
+      while (i < l) {
         if (i >= argI) {
           locals = [...locals, f.parameters[i]];
           values = [...values, undefined]; 
@@ -443,8 +446,8 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       }
 
       i = 0;
-
-      while (i < length(f.body)) {
+      l = length(f.body);
+      while (i < l) {
         let s = f.body[i];
         s.interpret(s, stack);
 
@@ -489,8 +492,9 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
       let locals: string[] = [];
       let values: Value[] = [];
       let argI = length(self.args);
+      let l = length(f.parameters);
 
-      while (i < length(f.parameters)) {
+      while (i < l) {
         if (i >= argI) {
           locals = [...locals, f.parameters[i]];
           values = [...values, undefined]; 
@@ -511,8 +515,9 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
       }
 
       i = 0;
+      l = length(f.body);
 
-      while (i < length(f.body)) {
+      while (i < l) {
         let s = f.body[i];
         s.interpret(s, stack);
 
@@ -544,7 +549,7 @@ let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexI
 
       if (typeof target === "object") {
         if (target.type === "array" && typeof index === "number") {
-          if (index >= target.length) {
+          if (index >= length(target.values)) {
             throw Error("Out of bounds index");
           } else {
             return target.values[index];
@@ -615,7 +620,8 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
 
         try {
           let i = 0;
-          while (i < length(self.block)) {
+          let l = length(self.block);
+          while (i < l) {
             self.block[i].interpret(self.block[i], frame);
             i = i + 1;
           }
@@ -626,6 +632,7 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
           if (e === "continue") {
             continue;
           }
+          throw e;
         }
       }
 
@@ -672,9 +679,11 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
     handler: handler,
     interpret: function(self, frame): Value {
       let i = 0;
+      let l = 0;
       try {
         let block = self.block;
-        while (i < length(block)) {
+        l = length(block);
+        while (i < l) {
           block[i].interpret(block[i], frame);
           i = i + 1;
         }
@@ -684,15 +693,17 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
         frame.values = [...frame.values, err];
         let handler = self.handler;
         i = 0;
-        while (i < length(handler)) {
+        l = length(handler);
+        while (i < l) {
           handler[i].interpret(handler[i], frame);
           i = i + 1;
         }
         let locals = [];
         let values = [];
         i = 0;
+        l = length(frame.locals);
         let index = lastIndexOf(frame.locals, self.name);
-        while (i < length(frame.locals)) {
+        while (i < l) {
           let v = frame.locals[i];
           if (i === index) {
             i = i + 1;
@@ -747,7 +758,8 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
         block = self.ifTrue;
       }
       let i = 0;
-      while (i < length(block)) {
+      let l = length(block);
+      while (i < l) {
         let n = block[i];
         n.interpret(n, frame);
         i = i + 1;
@@ -811,7 +823,11 @@ let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
     value: value,
     interpret: function(self, frame): Value {
       let result = self.value.interpret(self.value, frame);
-      return typeof result;
+      if (typeof result === "object" && result.type === "function") {
+        return "function";
+      } else {
+        return typeof result;
+      }
     }
   }
 }
@@ -894,8 +910,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
 
       let args: AstInterplet[] = [];
       let i = 0;
+      let l = length(right.children);
 
-      while (i < length(right.children)) {
+      while (i < l) {
         let a = createInterp(right.children[i]);
         args = [...args, a];
 
@@ -932,8 +949,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
 
       let children = value.children;
+      let l = length(children);
 
-      while (i < length(children)) {
+      while (i < l) {
         let node = children[i];
 
         if (node.id === "..." && node.type === "UnaryNode") {
@@ -970,8 +988,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
 
       let children = value.children;
+      let l = length(children);
 
-      while (i < length(children)) {
+      while (i < l) {
         let node = children[i];
         values = [...values, createInterp(node)];
 
@@ -993,8 +1012,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
     let parameters: string[] = [];
     let body: AstInterplet[] = [];
     let i = 0;
+    let l = length(parsed.parameters.children);
 
-    while (i < length(parsed.parameters.children)) {
+    while (i < l) {
       let node = parsed.parameters.children[i];
 
       if (node.type !== "Name") {
@@ -1007,8 +1027,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
     }
 
     i = 0;
+    l = length(parsed.body.children);
 
-    while (i < length(parsed.body.children)) {
+    while (i < l) {
       let node = parsed.body.children[i];
       let interp = createInterp(node);
 
@@ -1043,7 +1064,8 @@ export let createInterp = function(parsed: Node): AstInterplet {
 
       let i = 0;
       let block: AstInterplet[] = [];
-      while (i < length(body.children)) {
+      let l = length(body.children);
+      while (i < l) {
         block = [...block, createInterp(body.children[i])];
         i = i + 1;
       }
@@ -1081,13 +1103,15 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
       let block: AstInterplet[] = [];
       let i = 0;
-      while (i < length(first.children)) {
+      let l = length(first.children);
+      while (i < l) {
         block = [...block, createInterp(first.children[i])];
         i = i + 1;
       }
       let guard: AstInterplet[] = [];
       i = 0;
-      while (i < length(third.children)) {
+      l = length(third.children);
+      while (i < l) {
         guard = [...guard, createInterp(third.children[i])];
         i = i + 1;
       }
@@ -1104,7 +1128,8 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
       let trueBlock = [];
       let i = 0;
-      while (i < length(ifTrue.children)) {
+      let l = length(ifTrue.children);
+      while (i < l) {
         trueBlock = [...trueBlock, createInterp(ifTrue.children[i])];
         i = i + 1;
       }
@@ -1121,7 +1146,8 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
       let falseBlock = [];
       i = 0;
-      while (i < length(ifFalse.children)) {
+      l = length(ifFalse.children);
+      while (i < l) {
         falseBlock = [...falseBlock, createInterp(ifFalse.children[i])];
         i = i + 1;
       }
@@ -1143,8 +1169,9 @@ export let createInterp = function(parsed: Node): AstInterplet {
 
       let args: AstInterplet[] = [];
       let i = 0;
+      let l = length(third.children);
 
-      while (i < length(third.children)) {
+      while (i < l) {
         let a = createInterp(third.children[i]);
         args = [...args, a];
 
@@ -1163,3 +1190,5 @@ export let createInterp = function(parsed: Node): AstInterplet {
   console.error("Unhandled", parsed);
   throw Error("failed");
 };
+
+export {};

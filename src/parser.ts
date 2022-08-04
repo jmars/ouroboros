@@ -1,5 +1,5 @@
 import { Token } from './lexer';
-import { indexOf } from './util';
+import { indexOf, length } from './util';
 
 type Id
   = "(name)"
@@ -65,7 +65,7 @@ interface ParseLet {
   value: Literal,
   nud: (parselet: ParseLet) => Node,
   led: (parselet: ParseLet, left: Node) => Node,
-  std?: (parselet: ParseLet) => Node,
+  std: null | ((parselet: ParseLet) => Node),
 }
 
 let NULL: Literal = { type: "Null" };
@@ -163,7 +163,7 @@ let symbol_table = {
     }
     return value;
   },
-  read: function(self: any, key: string) {
+  read: function(self: any, key: string): ParseLet {
     let index = indexOf(self.keys, key);
     if (index !== -1) {
       return self.values[index];
@@ -181,7 +181,7 @@ let advance = function (id?: string): ParseLet {
   if (id && node.id !== id) {
     throw Error("Expected '" + id + "', got '" + node.id + "'");
   }
-  if (token_nr >= tokens.length) {
+  if (token_nr >= length(tokens)) {
     node = symbol_table.read(symbol_table, "(end)");
     return node;
   }
@@ -212,7 +212,8 @@ let advance = function (id?: string): ParseLet {
         },
         led: function() {
           throw Error("Invalid name token");
-        }
+        },
+        std: null
       };
     }
   } else if (a === "operator") {
@@ -249,7 +250,8 @@ let advance = function (id?: string): ParseLet {
       },
       led: function () {
         throw Error("Missing operator.");
-      }
+      },
+      std: null
     };
   } else if (a === "number") {
     if (typeof v !== "number") {
@@ -276,7 +278,8 @@ let advance = function (id?: string): ParseLet {
       },
       led: function () {
         throw Error("Missing operator.");
-      }
+      },
+      std: null
     };
   } else {
     throw Error("unexpected token");
@@ -316,11 +319,7 @@ let statement = function () {
 let statements = function () {
   let a: Node[] = [];
   let s: Node;
-  while (true) {
-    if (node.id === "}" || node.id === "(end)") {
-      break;
-    }
-
+  while (node.id !== "}" && node.id !== "(end)") {
     s = statement();
 
     if (s) {
@@ -363,7 +362,8 @@ let symbol = function (id: Id, bp?: number): ParseLet {
       },
       led: function (ignore) {
         throw Error("Missing operator.");
-      }
+      },
+      std: null
     }
     symbol_table.update(symbol_table, id, s);
     return s;
@@ -636,7 +636,7 @@ prefix("function", function () {
   node = advance(")");
   node = advance("{");
   let children = statements();
-  if (children.length === 0 || children[children.length - 1].id !== "return") {
+  if (length(children) === 0 || children[length(children) - 1].id !== "return") {
     children = [...children, {
       type: "StatementNode",
       id: "return",

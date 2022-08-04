@@ -2,6 +2,7 @@
   "version": "0.0.2",
   "name": "workspace",
   "main": "src/index.js",
+  "type": "module",
   "devDependencies": {
     "bun-types": "^0.1.4"
   }

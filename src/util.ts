@@ -1,22 +1,22 @@
 export let length = function<T>(v: string | Array<T>): number {
   let i = 0;
-  while (true) {
-    try {
-      let e = v[i];
-      if (e === undefined) {
-        return i;
-      }
+  try {
+    let e = v[i];
+    while (e !== undefined) {
       i = i + 1;
-    } catch (e) {
-      return i;
+      e = v[i];
     }
+    return i;
+  } catch (e) {
+    return i;
   }
 };
 
 export let indexOf = function<T>(a: string | Array<T>, v: T): number {
   let i = 0;
+  let l = length(a);
 
-  while (i < length(a)) {
+  while (i < l) {
     if (a[i] === v) {
       return i;
     }

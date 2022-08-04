@@ -2,7 +2,7 @@ import { Frame, createInterp } from './astinterp';
 import tokenize from './lexer';
 import parse from './parser';
 
-const source = await Bun.file("./out.js").text();
+const source = await Bun.file('./out.js').text();
 
 try {
   const tokens = tokenize(source, "=<>!+-*&|/%^.".split(''), "=<>&|.*".split(''));
