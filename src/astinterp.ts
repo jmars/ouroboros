@@ -10,7 +10,8 @@ type Value
   | ValueArray
   | ValueRecord
   | FunctionValue
-  | SpreadMarker;
+  | SpreadMarker
+  | NativeFunction
 
 interface ValueArray {
   type: "array";
@@ -28,6 +29,12 @@ interface FunctionValue {
   type: "function";
   parameters: string[];
   body: AstInterplet[];
+}
+
+export interface NativeFunction {
+  type: "nativefunction";
+  body: Function;
+  parameters: string[];
 }
 
 interface SpreadMarker {
@@ -338,6 +345,10 @@ let OperatorInterplet = function(operator: string, left: AstInterplet, right: As
       } else if (self.operator === "!==") {
         return left !== right;
       } else {
+        if (typeof left === "string" && typeof right === "string" && self.operator === "+") {
+          return left + right;
+        }
+
         if (typeof left !== "number" || typeof right !== "number") {
           throw Error("Arithmetic can only be performed on numbers");
         }
@@ -415,7 +426,7 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
     interpret: function(self, frame): Value {
       let f = self.func.interpret(self.func, frame);
 
-      if (typeof f !== "object" || f.type !== "function") {
+      if (typeof f !== "object" || f.type !== "function" && f.type !== "nativefunction") {
         throw Error("Attempt to call non-function");
       }
 
@@ -435,6 +446,10 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
           values = [...values, a.interpret(a, frame)];
         }
         i = i + 1;
+      }
+      
+      if (f.type === "nativefunction") {
+        return f.body(values[0]);
       }
 
       let stack: Frame = {
@@ -565,6 +580,12 @@ let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexI
           }
           return target.values[indexOf(target.keys, index)];
         }
+      } else if (typeof target === "string" && typeof index === "number") {
+        if (index >= length(target)) {
+          throw Error("Out of bounds index");
+        } else {
+          return target[index];
+        }
       }
     }
   }
@@ -584,6 +605,7 @@ let DotInterplet = function(target: AstInterplet, key: string): DotInterplet {
       let target = self.target.interpret(self.target, frame);
 
       if (typeof target !== "object" || target.type !== "object") {
+        console.log(self.target, self.key, target, key);
         throw Error("Dot syntax can only be used on objects");
       }
 
@@ -1190,5 +1212,3 @@ export let createInterp = function(parsed: Node): AstInterplet {
   console.error("Unhandled", parsed);
   throw Error("failed");
 };
-
-export default createInterp;

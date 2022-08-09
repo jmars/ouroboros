@@ -1,4 +1,4 @@
-import { length, indexOf, parseFloat, isFinite} from './util';
+import { length, indexOf, parseFloat, isFinite, codechar, charcode } from './util';
 
 export type Token = {
   type: "name" | "number" | "string" | "operator",
@@ -8,214 +8,209 @@ export type Token = {
   line: number
 }
 
-let tokenize = function (string: string, prefix: string[], suffix: string[]) {
+export let tokenize = function (string: string, prefix: string[], suffix: string[]) {
   if (string === undefined) {
     return [];
   }
 
-  if (typeof prefix === "undefined") {
-    prefix = ["<", ">", "+", "-", "&"];
-  }
-  if (typeof suffix === "undefined") {
-    suffix = ["=", ">", "&", ":"];
-  }
-
   let i: number = 0;
   let line: number = 1;
-  let c: string = string[i];
+  let c: number = charcode(string[i]);
   let len: number = length(string);
   let n: number = 0;
   let result: Token[] = [];
   let str: string = "";
-  let q: string = "";
+  let q: number = charcode("");
 
-  while (c) {
-    let from = i;
+  try {
+    while (c !== undefined) {
+      let from = i;
 
-    if (c <= " ") {
-      if (c === "\n") {
-        line = line + 1;
-      }
-      i = i + 1;
-      c = string[i];
-    } else if ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z")) {
-      str = c;
-      i = i + 1;
-      while (true) {
-        c = string[i];
-        if (
-          (c >= "a" && c <= "z")
-          || (c >= "A" && c <= "Z")
-          || (c >= "0" && c <= "9")
-          || c === "_"
-        ) {
-          str = str + c;
-          i = i + 1;
-        } else {
-          break;
-        }
-      }
-      result = [...result, {
-        type: "name",
-        value: str,
-        from: from,
-        to: i,
-        line: line
-      }];
-    } else if (c >= "0" && c <= "9") {
-      str = c;
-      i = i + 1;
-
-      while (true) {
-        c = string[i];
-        if (c < "0" || c > "9") {
-          break;
+      if (c <= charcode(" ")) {
+        if (c === charcode("\n")) {
+          line = line + 1;
         }
         i = i + 1;
-        str = str + c;
-      }
-
-      if (c === ".") {
+        c = charcode(string[i]);
+      } else if ((c >= charcode("a") && c <= charcode("z")) || (c >= charcode("A") && c <= charcode("Z"))) {
+        str = codechar(c);
         i = i + 1;
-        str = str + c;
         while (true) {
-          c = string[i];
-          if (c < "0" || c > "9") {
+          c = charcode(string[i]);
+          if (
+            (c >= charcode("a") && c <= charcode("z"))
+            || (c >= charcode("A") && c <= charcode("Z"))
+            || (c >= charcode("0") && c <= charcode("9"))
+            || c === charcode("_")
+          ) {
+            str = str + codechar(c);
+            i = i + 1;
+          } else {
+            break;
+          }
+        }
+        result = [...result, {
+          type: "name",
+          value: str,
+          from: from,
+          to: i,
+          line: line
+        }];
+      } else if (c >= charcode("0") && c <= charcode("9")) {
+        str = codechar(c);
+        i = i + 1;
+
+        while (true) {
+          c = charcode(string[i]);
+          if (c < charcode("0") || c > charcode("9")) {
             break;
           }
           i = i + 1;
-          str = str + c;
+          str = str + codechar(c);
         }
-      }
 
-      if (c === "e" || c === "E") {
-        i = i + 1;
-        str = str + c;
-        c = string[i];
-        if (c === "-" || c === "+") {
+        if (c === charcode(".")) {
           i = i + 1;
-          str = str + c;
-          c = string[i];
-        }
-        if (c < "0" || c > "9") {
-          throw Error("Bad exponent");
+          str = str + codechar(c);
+          while (true) {
+            c = charcode(string[i]);
+            if (c < charcode("0") || c > charcode("9")) {
+              break;
+            }
+            i = i + 1;
+            str = str + codechar(c);
+          }
         }
 
-        i = i + 1;
-        str = str + c;
-        c = string[i];
-
-        while (c >= "0" && c <= "9") {
+        if (c === charcode("e") || c === charcode("E")) {
           i = i + 1;
-          str = str + c;
-          c = string[i];
+          str = str + codechar(c);
+          c = charcode(string[i]);
+          if (c === charcode("-") || c === charcode("+")) {
+            i = i + 1;
+            str = str + codechar(c);
+            c = charcode(string[i]);
+          }
+          if (c < charcode("0") || c > charcode("9")) {
+            throw Error("Bad exponent");
+          }
+
+          i = i + 1;
+          str = str + codechar(c);
+          c = charcode(string[i]);
+
+          while (c >= charcode("0") && c <= charcode("9")) {
+            i = i + 1;
+            str = str + codechar(c);
+            c = charcode(string[i]);
+          }
         }
-      }
 
-      if (c >= "a" && c <= "z") {
-        str = str + c;
+        if (c >= charcode("a") && c <= charcode("z")) {
+          str = str + codechar(c);
+          i = i + 1;
+          throw Error("Bad number");
+        }
+
+        n = parseFloat(str);
+        if (isFinite(n)) {
+          result = [...result, {
+            type: "number",
+            value: n,
+            from: from,
+            to: i,
+            line: line
+          }];
+        } else {
+          throw Error("Bad number");
+        }
+      } else if (c === charcode("\"") || c === charcode("'")) {
+        str = "";
+        q = c;
         i = i + 1;
-        throw Error("Bad number");
-      }
+        while (true) {
+          c = charcode(string[i]);
+          if (c < charcode(" ")) {
+            throw Error("Unterminated/Control character in string");
+          }
 
-      n = parseFloat(str);
-      if (isFinite(n)) {
+          if (c === q) {
+            break;
+          }
+
+          if (c === charcode("\\")) {
+            i = i + 1;
+            if (i >= len) {
+              throw Error("Unterminated string");
+            }
+            c = charcode(string[i]);
+            if (c === charcode("b")) {
+              c = charcode("\b");
+            } else if (c === charcode("f")) {
+              c = charcode("\f");
+            } else if (c === charcode("n")) {
+              c = charcode("\n");
+            } else if (c === charcode("r")) {
+              c = charcode("\r");
+            } else if (c === charcode("t")) {
+              c = charcode("\t");
+            } else if (c === charcode("u")) {
+              throw Error("Unicode escapes not supported");
+            }
+          }
+          str = str + codechar(c);
+          i = i + 1;
+        }
+        i = i + 1;
         result = [...result, {
-          type: "number",
-          value: n,
+          type: "string",
+          value: str,
+          from: from,
+          to: i,
+          line: line
+        }];
+        c = charcode(string[i]);
+      } else if (c === charcode("/") && string[i + 1] === "/") {
+        i = i + 1;
+        while (true) {
+          c = charcode(string[i]);
+          if (c === charcode("\n") || c === charcode("\r") || c === charcode("")) {
+            break;
+          }
+          i = i + 1;
+        }
+      } else if (indexOf(prefix, codechar(c)) >= 0) {
+        str = codechar(c);
+        i = i + 1;
+        while (true) {
+          c = charcode(string[i]);
+          if (i >= len || indexOf(suffix, codechar(c)) < 0) {
+            break;
+          }
+          str = str + codechar(c);
+          i = i + 1;
+        }
+        result = [...result, {
+          type: "operator",
+          value: str,
           from: from,
           to: i,
           line: line
         }];
       } else {
-        throw Error("Bad number");
-      }
-    } else if (c === "\"" || c === "'") {
-      str = "";
-      q = c;
-      i = i + 1;
-      while (true) {
-        c = string[i];
-        if (c < " ") {
-          throw Error("Unterminated/Control character in string");
-        }
-
-        if (c === q) {
-          break;
-        }
-
-        if (c === "\\") {
-          i = i + 1;
-          if (i >= len) {
-            throw Error("Unterminated string");
-          }
-          c = string[i];
-          if (c === "b") {
-            c = "\b";
-          } else if (c === "f") {
-            c = "\f";
-          } else if (c === "n") {
-            c = "\n";
-          } else if (c === "r") {
-            c = "\r";
-          } else if (c === "t") {
-            c = "\t";
-          } else if (c === "u") {
-            throw Error("Unicode escapes not supported");
-          }
-        }
-        str = str + c;
         i = i + 1;
+        result = [...result, {
+          type: "operator",
+          value: codechar(c),
+          from: from,
+          to: i,
+          line: line
+        }];
+        c = charcode(string[i]);
       }
-      i = i + 1;
-      result = [...result, {
-        type: "string",
-        value: str,
-        from: from,
-        to: i,
-        line: line
-      }];
-      c = string[i];
-    } else if (c === "/" && string[i + 1] === "/") {
-      i = i + 1;
-      while (true) {
-        c = string[i];
-        if (c === "\n" || c === "\r" || c === "") {
-          break;
-        }
-        i = i + 1;
-      }
-    } else if (indexOf(prefix, c) >= 0) {
-      str = c;
-      i = i + 1;
-      while (true) {
-        c = string[i];
-        if (i >= len || indexOf(suffix, c) < 0) {
-          break;
-        }
-        str = str + c;
-        i = i + 1;
-      }
-      result = [...result, {
-        type: "operator",
-        value: str,
-        from: from,
-        to: i,
-        line: line
-      }];
-    } else {
-      i = i + 1;
-      result = [...result, {
-        type: "operator",
-        value: c,
-        from: from,
-        to: i,
-        line: line
-      }];
-      c = string[i];
     }
+  } catch (e) {
+    return result;
   }
   return result;
 };
-
-export default tokenize;

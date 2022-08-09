@@ -10919,36 +10919,6 @@
                                 "id": "body",
                                 "children": [
                                   {
-                                    "type": "TernaryNode",
-                                    "id": "(",
-                                    "first": {
-                                      "type": "Name",
-                                      "value": "console",
-                                      "id": "(name)"
-                                    },
-                                    "second": {
-                                      "type": "Name",
-                                      "value": "log",
-                                      "id": "(name)"
-                                    },
-                                    "third": {
-                                      "type": "NodeList",
-                                      "id": "(",
-                                      "children": [
-                                        {
-                                          "type": "Name",
-                                          "value": "parselet",
-                                          "id": "(name)"
-                                        },
-                                        {
-                                          "type": "Name",
-                                          "value": "line",
-                                          "id": "(name)"
-                                        }
-                                      ]
-                                    }
-                                  },
-                                  {
                                     "type": "StatementNode",
                                     "id": "throw",
                                     "value": {
@@ -17206,40 +17176,6 @@
                                           "type": "BinaryNode",
                                           "id": "=",
                                           "left": {
-                                            "type": "Name",
-                                            "value": "node",
-                                            "id": "(name)"
-                                          },
-                                          "right": {
-                                            "type": "BinaryNode",
-                                            "id": "(",
-                                            "left": {
-                                              "type": "Name",
-                                              "value": "advance",
-                                              "id": "(name)"
-                                            },
-                                            "right": {
-                                              "type": "NodeList",
-                                              "id": "(",
-                                              "children": [
-                                                {
-                                                  "type": "LiteralNode",
-                                                  "id": "(literal)",
-                                                  "value": {
-                                                    "type": "String",
-                                                    "value": ","
-                                                  }
-                                                }
-                                              ]
-                                            },
-                                            "assignment": false
-                                          },
-                                          "assignment": true
-                                        },
-                                        {
-                                          "type": "BinaryNode",
-                                          "id": "=",
-                                          "left": {
                                             "type": "BinaryNode",
                                             "id": ".",
                                             "left": {
@@ -17343,6 +17279,100 @@
                                                 }
                                               ]
                                             }
+                                          },
+                                          "assignment": true
+                                        },
+                                        {
+                                          "type": "TernaryNode",
+                                          "id": "if",
+                                          "first": {
+                                            "type": "BinaryNode",
+                                            "left": {
+                                              "type": "BinaryNode",
+                                              "id": ".",
+                                              "left": {
+                                                "type": "Name",
+                                                "value": "node",
+                                                "id": "(name)"
+                                              },
+                                              "right": {
+                                                "type": "Name",
+                                                "value": "id",
+                                                "id": "(name)"
+                                              },
+                                              "assignment": false
+                                            },
+                                            "right": {
+                                              "type": "LiteralNode",
+                                              "id": "(literal)",
+                                              "value": {
+                                                "type": "String",
+                                                "value": ","
+                                              }
+                                            },
+                                            "assignment": false,
+                                            "id": "!=="
+                                          },
+                                          "second": {
+                                            "type": "StatementNode",
+                                            "id": "{",
+                                            "value": {
+                                              "type": "NodeList",
+                                              "id": "{",
+                                              "children": [
+                                                {
+                                                  "type": "StatementNode",
+                                                  "id": "break",
+                                                  "value": {
+                                                    "type": "Name",
+                                                    "id": "break",
+                                                    "value": "break"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "third": {
+                                            "type": "StatementNode",
+                                            "id": "{",
+                                            "value": {
+                                              "type": "NodeList",
+                                              "id": "{",
+                                              "children": []
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "BinaryNode",
+                                          "id": "=",
+                                          "left": {
+                                            "type": "Name",
+                                            "value": "node",
+                                            "id": "(name)"
+                                          },
+                                          "right": {
+                                            "type": "BinaryNode",
+                                            "id": "(",
+                                            "left": {
+                                              "type": "Name",
+                                              "value": "advance",
+                                              "id": "(name)"
+                                            },
+                                            "right": {
+                                              "type": "NodeList",
+                                              "id": "(",
+                                              "children": [
+                                                {
+                                                  "type": "LiteralNode",
+                                                  "id": "(literal)",
+                                                  "value": {
+                                                    "type": "String",
+                                                    "value": ","
+                                                  }
+                                                }
+                                              ]
+                                            },
+                                            "assignment": false
                                           },
                                           "assignment": true
                                         },
@@ -17969,40 +17999,6 @@
                                           "type": "BinaryNode",
                                           "id": "=",
                                           "left": {
-                                            "type": "Name",
-                                            "value": "node",
-                                            "id": "(name)"
-                                          },
-                                          "right": {
-                                            "type": "BinaryNode",
-                                            "id": "(",
-                                            "left": {
-                                              "type": "Name",
-                                              "value": "advance",
-                                              "id": "(name)"
-                                            },
-                                            "right": {
-                                              "type": "NodeList",
-                                              "id": "(",
-                                              "children": [
-                                                {
-                                                  "type": "LiteralNode",
-                                                  "id": "(literal)",
-                                                  "value": {
-                                                    "type": "String",
-                                                    "value": ","
-                                                  }
-                                                }
-                                              ]
-                                            },
-                                            "assignment": false
-                                          },
-                                          "assignment": true
-                                        },
-                                        {
-                                          "type": "BinaryNode",
-                                          "id": "=",
-                                          "left": {
                                             "type": "BinaryNode",
                                             "id": ".",
                                             "left": {
@@ -18106,6 +18102,100 @@
                                                 }
                                               ]
                                             }
+                                          },
+                                          "assignment": true
+                                        },
+                                        {
+                                          "type": "TernaryNode",
+                                          "id": "if",
+                                          "first": {
+                                            "type": "BinaryNode",
+                                            "left": {
+                                              "type": "BinaryNode",
+                                              "id": ".",
+                                              "left": {
+                                                "type": "Name",
+                                                "value": "node",
+                                                "id": "(name)"
+                                              },
+                                              "right": {
+                                                "type": "Name",
+                                                "value": "id",
+                                                "id": "(name)"
+                                              },
+                                              "assignment": false
+                                            },
+                                            "right": {
+                                              "type": "LiteralNode",
+                                              "id": "(literal)",
+                                              "value": {
+                                                "type": "String",
+                                                "value": ","
+                                              }
+                                            },
+                                            "assignment": false,
+                                            "id": "!=="
+                                          },
+                                          "second": {
+                                            "type": "StatementNode",
+                                            "id": "{",
+                                            "value": {
+                                              "type": "NodeList",
+                                              "id": "{",
+                                              "children": [
+                                                {
+                                                  "type": "StatementNode",
+                                                  "id": "break",
+                                                  "value": {
+                                                    "type": "Name",
+                                                    "id": "break",
+                                                    "value": "break"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "third": {
+                                            "type": "StatementNode",
+                                            "id": "{",
+                                            "value": {
+                                              "type": "NodeList",
+                                              "id": "{",
+                                              "children": []
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "BinaryNode",
+                                          "id": "=",
+                                          "left": {
+                                            "type": "Name",
+                                            "value": "node",
+                                            "id": "(name)"
+                                          },
+                                          "right": {
+                                            "type": "BinaryNode",
+                                            "id": "(",
+                                            "left": {
+                                              "type": "Name",
+                                              "value": "advance",
+                                              "id": "(name)"
+                                            },
+                                            "right": {
+                                              "type": "NodeList",
+                                              "id": "(",
+                                              "children": [
+                                                {
+                                                  "type": "LiteralNode",
+                                                  "id": "(literal)",
+                                                  "value": {
+                                                    "type": "String",
+                                                    "value": ","
+                                                  }
+                                                }
+                                              ]
+                                            },
+                                            "assignment": false
                                           },
                                           "assignment": true
                                         },

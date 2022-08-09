@@ -178,7 +178,7 @@ let node: ParseLet;
 let line: number = 1;
 
 let advance = function (id?: string): ParseLet {
-  if (id && node.id !== id) {
+  if (id !== undefined && node.id !== id) {
     throw Error("Expected '" + id + "', got '" + node.id + "'");
   }
   if (token_nr >= length(tokens)) {
@@ -922,7 +922,7 @@ stmt("while", function () {
   };
 });
 
-let parse = function (tokenized: Token[]) {
+export let parse = function (tokenized: Token[]) {
   tokens = tokenized;
   token_nr = 0;
   node = advance();
@@ -930,5 +930,3 @@ let parse = function (tokenized: Token[]) {
   node = advance("(end)");
   return s;
 };
-
-export default parse;
