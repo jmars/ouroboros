@@ -60,3 +60,5 @@ method.f = function(dd) {
 };
 let nmr = nested.m.f();
 let dynamic = nested["m"].f();
+let ttt = [...a, ...a];
+let yyyy = {...yy, ...yy};

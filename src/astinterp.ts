@@ -1191,4 +1191,4 @@ export let createInterp = function(parsed: Node): AstInterplet {
   throw Error("failed");
 };
 
-export {};
+export default createInterp;

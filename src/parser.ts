@@ -357,7 +357,6 @@ let symbol = function (id: Id, bp?: number): ParseLet {
       lbp: bp,
       value: SymbolLiteral(id),
       nud: function (parselet) {
-        console.log(parselet, line);
         throw Error("Undefined.");
       },
       led: function (ignore) {
@@ -663,12 +662,15 @@ prefix("[", function () {
       if (node.id === "...") {
         node = advance("...");
         let v = expression(0);
-        node = advance(",");
         a.children = [...a.children, {
           type: "UnaryNode",
           id: "...",
           value: v
         }];
+        if (node.id !== ",") {
+          break;
+        }
+        node = advance(",");
         continue;
       }
       a.children = [...a.children, expression(0)];
@@ -695,12 +697,15 @@ prefix("{", function () {
       if (n.id === "...") {
         node = advance('...');
         v = expression(0);
-        node = advance(",");
         a.children = [...a.children, {
           type: "UnaryNode",
           id: "...",
           value: v
         }];
+        if (node.id !== ",") {
+          break;
+        }
+        node = advance(",");
         continue;
       }
       if (n.type !== "Name" && n.type !== "LiteralNode") {
