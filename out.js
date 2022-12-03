@@ -174,9 +174,6 @@ let ascii = [
     "~"
 ];
 let charcode = function (a) {
-    if (a === undefined) {
-        return undefined;
-    }
     let code = indexOf(ascii, a);
     return code;
 };
@@ -184,7 +181,7 @@ let codechar = function (a) {
     let char = ascii[a];
     return char;
 };
-let tokenize = function (string, prefix, suffix) {
+let tokenize = function (string, prefix, suffix, log) {
     if (string === undefined) {
         return [];
     }
@@ -197,7 +194,7 @@ let tokenize = function (string, prefix, suffix) {
     let str = "";
     let q = charcode("");
     try {
-        while (c !== undefined) {
+        while (c !== undefined && c !== -1) {
             let from = i;
             if (c <= charcode(" ")) {
                 if (c === charcode("\n")) {
@@ -546,11 +543,11 @@ let advance = function (id) {
 };
 let expression = function (rbp) {
     let t = node;
-    node = advance();
+    node = advance(undefined);
     let left = t.nud(t);
     while (rbp < node.lbp) {
         t = node;
-        node = advance();
+        node = advance(undefined);
         left = t.led(t, left);
     }
     return left;
@@ -558,7 +555,7 @@ let expression = function (rbp) {
 let statement = function () {
     let n = node;
     if (n.type === "StatementNode") {
-        node = advance();
+        node = advance(undefined);
         return n.std(n);
     }
     let v = expression(0);
@@ -573,7 +570,7 @@ let statements = function () {
     let s;
     while (node.id !== "}" && node.id !== "(end)") {
         s = statement();
-        if (s) {
+        if (s !== undefined) {
             a = [...a, s];
         }
     }
@@ -617,7 +614,7 @@ let symbol = function (id, bp) {
     }
 };
 let constant = function (s, v) {
-    let x = symbol(s);
+    let x = symbol(s, undefined);
     x.value = v;
     x.nud = function (parselet) {
         return {
@@ -682,7 +679,7 @@ let assignment = function (id) {
     });
 };
 let prefix = function (id, nud) {
-    let s = symbol(id);
+    let s = symbol(id, undefined);
     if (nud !== undefined) {
         s.nud = nud;
     }
@@ -698,27 +695,27 @@ let prefix = function (id, nud) {
     return s;
 };
 let stmt = function (s, f) {
-    let x = symbol(s);
+    let x = symbol(s, undefined);
     x.type = "StatementNode";
     x.std = f;
     return x;
 };
-symbol("(end)");
-symbol("(name)");
-symbol(":");
-symbol(";");
-symbol(")");
-symbol("]");
-symbol("}");
-symbol(",");
-symbol("else");
-symbol("catch");
-symbol("...");
+symbol("(end)", undefined);
+symbol("(name)", undefined);
+symbol(":", undefined);
+symbol(";", undefined);
+symbol(")", undefined);
+symbol("]", undefined);
+symbol("}", undefined);
+symbol(",", undefined);
+symbol("else", undefined);
+symbol("catch", undefined);
+symbol("...", undefined);
 constant("true", TRUE);
 constant("false", FALSE);
 constant("null", NULL);
 constant("undefined", UNDEFINED);
-symbol("(literal)");
+symbol("(literal)", undefined);
 assignment("=");
 infix("?", 20, function (parselet, left) {
     let first = left;
@@ -733,25 +730,25 @@ infix("?", 20, function (parselet, left) {
         third: third
     };
 });
-infixr("&&", 30);
-infixr("||", 30);
-infixr("===", 40);
-infixr("!==", 40);
-infixr("<", 40);
-infixr("<=", 40);
-infixr(">", 40);
-infixr(">=", 40);
-infix("+", 50);
-infix("-", 50);
-infix("*", 60);
-infix("/", 60);
-infix("**", 70);
+infixr("&&", 30, undefined);
+infixr("||", 30, undefined);
+infixr("===", 40, undefined);
+infixr("!==", 40, undefined);
+infixr("<", 40, undefined);
+infixr("<=", 40, undefined);
+infixr(">", 40, undefined);
+infixr(">=", 40, undefined);
+infix("+", 50, undefined);
+infix("-", 50, undefined);
+infix("*", 60, undefined);
+infix("/", 60, undefined);
+infix("**", 70, undefined);
 infix(".", 80, function (parselet, left) {
     if (node.type !== "Name") {
         throw Error("Expected a property name.");
     }
     let n = node;
-    node = advance();
+    node = advance(undefined);
     return {
         type: "BinaryNode",
         id: ".",
@@ -816,8 +813,8 @@ infix("(", 80, function (parselet, left) {
     node = advance(")");
     return n;
 });
-prefix("-");
-prefix("typeof");
+prefix("-", undefined);
+prefix("typeof", undefined);
 prefix("(", function () {
     let e = expression(0);
     node = advance(")");
@@ -841,7 +838,7 @@ prefix("function", function () {
     };
     if (node.type === "Name") {
         n.name = node.id;
-        node = advance();
+        node = advance(undefined);
     }
     node = advance("(");
     if (node.id !== ")") {
@@ -850,7 +847,7 @@ prefix("function", function () {
                 throw Error("Expected a parameter name.");
             }
             n.parameters.children = [...n.parameters.children, node.nud(node)];
-            node = advance();
+            node = advance(undefined);
             if (node.id !== ",") {
                 break;
             }
@@ -935,7 +932,7 @@ prefix("{", function () {
                 throw Error("Bad property name.");
             }
             let kn = n.nud(n);
-            node = advance();
+            node = advance(undefined);
             node = advance(":");
             v = expression(0);
             a.children = [...a.children, {
@@ -985,7 +982,7 @@ stmt("let", function () {
     if (n.type !== "Name") {
         throw Error("Expected a new variable name.");
     }
-    node = advance();
+    node = advance(undefined);
     if (node.id === ";") {
         node = advance(";");
         return {
@@ -1137,7 +1134,7 @@ stmt("while", function () {
 let parse = function (tokenized) {
     tokens = tokenized;
     token_nr = 0;
-    node = advance();
+    node = advance(undefined);
     let s = statements();
     node = advance("(end)");
     return s;
@@ -1257,17 +1254,19 @@ let AssignmentInterplet = function (name, value) {
         value: value,
         interpret: function (self, frame) {
             let v = self.value.interpret(self.value, frame);
-            let index = lastIndexOf(frame.locals, self.name);
-            if (index === -1) {
-                let globals = frame.globals;
-                if (globals !== null) {
-                    index = lastIndexOf(globals.locals, self.name);
-                    globals.values[index] = v;
-                    return v;
+            let current = frame;
+            let index = -1;
+            while (current !== null) {
+                index = lastIndexOf(current.locals, self.name);
+                if (index !== -1) {
+                    break;
                 }
+                current = current.parent;
+            }
+            if (current === null) {
                 throw Error("Assignment to undeclared variable");
             }
-            frame.values[index] = v;
+            current.values[index] = v;
             return v;
         }
     };
@@ -1298,6 +1297,10 @@ let LetInterplet = function (name, value) {
         value: value,
         interpret: function (self, frame) {
             let v = self.value.interpret(self.value, frame);
+            let exists = indexOf(self.name, frame.locals);
+            if (exists >= 0) {
+                throw Error("Cannot redeclare let-scoped variable");
+            }
             frame.locals = [...frame.locals, self.name];
             frame.values = [...frame.values, v];
             return v;
@@ -1308,16 +1311,13 @@ let NameInterplet = function (name) {
     return {
         name: name,
         interpret: function (self, frame) {
-            let index = lastIndexOf(frame.locals, self.name);
-            if (index >= 0) {
-                return frame.values[index];
-            }
-            let globals = frame.globals;
-            if (globals !== null) {
-                index = lastIndexOf(globals.locals, self.name);
-            }
-            if (index >= 0) {
-                return globals.values[index];
+            let current = frame;
+            while (current !== null) {
+                let index = lastIndexOf(current.locals, self.name);
+                if (index >= 0) {
+                    return current.values[index];
+                }
+                current = current.parent;
             }
             throw Error("Variable " + "'" + self.name + "'" + " does not exist");
         }
@@ -1331,19 +1331,33 @@ let OperatorInterplet = function (operator, left, right) {
         right: right,
         interpret: function (self, frame) {
             let left = self.left.interpret(self.left, frame);
-            let right = self.right.interpret(self.right, frame);
             if (self.operator === "&&" || self.operator === "||") {
-                if (typeof left !== "boolean" || typeof right !== "boolean") {
+                if (typeof left !== "boolean") {
                     throw Error("&& or || values must be boolean");
                 }
                 if (self.operator === "&&") {
-                    return left && right;
+                    if (left === true) {
+                        let r = self.right.interpret(self.right, frame);
+                        if (typeof r !== "boolean") {
+                            throw Error("&& or || values must be boolean");
+                        }
+                        return r;
+                    }
+                    return false;
                 }
                 else {
-                    return left || right;
+                    if (left === true) {
+                        return true;
+                    }
+                    let r = self.right.interpret(self.right, frame);
+                    if (typeof r !== "boolean") {
+                        throw Error("&& or || values must be boolean");
+                    }
+                    return r;
                 }
             }
-            else if (self.operator === "===") {
+            let right = self.right.interpret(self.right, frame);
+            if (self.operator === "===") {
                 return left === right;
             }
             else if (self.operator === "!==") {
@@ -1404,9 +1418,11 @@ let ReturnInterplet = function (value) {
     return {
         value: value,
         interpret: function (self, frame) {
-            frame.ret = self.value.interpret(self.value, frame);
-            frame.finished = true;
-            return frame.ret;
+            let ret = self.value.interpret(self.value, frame);
+            throw {
+                type: 'return',
+                value: ret
+            };
         }
     };
 };
@@ -1426,14 +1442,11 @@ let CallInterplet = function (func, args) {
             let l = length(f.parameters);
             while (i < l) {
                 if (i >= argI) {
-                    locals = [...locals, f.parameters[i]];
-                    values = [...values, undefined];
+                    throw Error("Not enough arguments");
                 }
-                else {
-                    let a = self.args[i];
-                    locals = [...locals, f.parameters[i]];
-                    values = [...values, a.interpret(a, frame)];
-                }
+                let a = self.args[i];
+                locals = [...locals, f.parameters[i]];
+                values = [...values, a.interpret(a, frame)];
                 i = i + 1;
             }
             if (f.type === "nativefunction") {
@@ -1442,21 +1455,24 @@ let CallInterplet = function (func, args) {
             let stack = {
                 locals: locals,
                 values: values,
-                ret: undefined,
-                globals: frame.globals === null ? frame : frame.globals,
-                finished: false
+                parent: frame
             };
             i = 0;
             l = length(f.body);
             while (i < l) {
                 let s = f.body[i];
-                s.interpret(s, stack);
-                if (stack.finished) {
-                    break;
+                try {
+                    s.interpret(s, stack);
+                }
+                catch (err) {
+                    if (typeof err === "object" && err.type === "return") {
+                        return err.value;
+                    }
+                    throw err;
                 }
                 i = i + 1;
             }
-            return stack.ret;
+            return undefined;
         }
     };
 };
@@ -1481,34 +1497,34 @@ let MethodCallInterplet = function (obj, func, args) {
             let l = length(f.parameters);
             while (i < l) {
                 if (i >= argI) {
-                    locals = [...locals, f.parameters[i]];
-                    values = [...values, undefined];
+                    throw Error("Not enough arguments");
                 }
-                else {
-                    let a = self.args[i];
-                    locals = [...locals, f.parameters[i]];
-                    values = [...values, a.interpret(a, frame)];
-                }
+                let a = self.args[i];
+                locals = [...locals, f.parameters[i]];
+                values = [...values, a.interpret(a, frame)];
                 i = i + 1;
             }
             let stack = {
                 locals: locals,
                 values: values,
-                ret: undefined,
-                globals: frame.globals === null ? frame : frame.globals,
-                finished: false
+                parent: frame
             };
             i = 0;
             l = length(f.body);
             while (i < l) {
                 let s = f.body[i];
-                s.interpret(s, stack);
-                if (stack.finished) {
-                    break;
+                try {
+                    s.interpret(s, stack);
+                }
+                catch (err) {
+                    if (typeof err === "object" && err.type === "return") {
+                        return err.value;
+                    }
+                    throw err;
                 }
                 i = i + 1;
             }
-            return stack.ret;
+            return undefined;
         }
     };
 };
@@ -1573,6 +1589,11 @@ let WhileInterplet = function (condition, block) {
         condition: condition,
         block: block,
         interpret: function (self, frame) {
+            let stack = {
+                locals: [],
+                values: [],
+                parent: frame
+            };
             while (true) {
                 let condition = self.condition.interpret(self.condition, frame);
                 if (typeof condition !== "boolean") {
@@ -1585,7 +1606,7 @@ let WhileInterplet = function (condition, block) {
                     let i = 0;
                     let l = length(self.block);
                     while (i < l) {
-                        self.block[i].interpret(self.block[i], frame);
+                        self.block[i].interpret(self.block[i], stack);
                         i = i + 1;
                     }
                 }
@@ -1599,7 +1620,7 @@ let WhileInterplet = function (condition, block) {
                     throw e;
                 }
             }
-            return frame.ret;
+            return undefined;
         }
     };
 };
@@ -1628,42 +1649,31 @@ let TryInterplet = function (block, name, handler) {
             try {
                 let block = self.block;
                 l = length(block);
+                let stack = {
+                    locals: [],
+                    values: [],
+                    parent: frame
+                };
                 while (i < l) {
-                    block[i].interpret(block[i], frame);
+                    block[i].interpret(block[i], stack);
                     i = i + 1;
                 }
-                return frame.ret;
+                return undefined;
             }
             catch (err) {
-                frame.locals = [...frame.locals, self.name];
-                frame.values = [...frame.values, err];
+                let stack = {
+                    locals: [self.name],
+                    values: [err],
+                    parent: frame
+                };
                 let handler = self.handler;
                 i = 0;
                 l = length(handler);
                 while (i < l) {
-                    handler[i].interpret(handler[i], frame);
+                    handler[i].interpret(handler[i], stack);
                     i = i + 1;
                 }
-                let locals = [];
-                let values = [];
-                i = 0;
-                l = length(frame.locals);
-                let index = lastIndexOf(frame.locals, self.name);
-                while (i < l) {
-                    let v = frame.locals[i];
-                    if (i === index) {
-                        i = i + 1;
-                        continue;
-                    }
-                    else {
-                        locals = [...locals, v];
-                        values = [...values, frame.values[i]];
-                        i = i + 1;
-                    }
-                }
-                frame.locals = locals;
-                frame.values = values;
-                return frame.ret;
+                return undefined;
             }
         }
     };
@@ -1684,6 +1694,10 @@ let IfInterplet = function (condition, ifTrue, ifFalse) {
         interpret: function (self, frame) {
             let condition = self.condition.interpret(self.condition, frame);
             if (typeof condition !== "boolean") {
+                throw {
+                    self: self,
+                    frame: frame
+                };
                 throw Error("Invalid if condition: must be boolean");
             }
             let block = self.ifFalse;
@@ -1692,12 +1706,17 @@ let IfInterplet = function (condition, ifTrue, ifFalse) {
             }
             let i = 0;
             let l = length(block);
+            let stack = {
+                locals: [],
+                values: [],
+                parent: frame
+            };
             while (i < l) {
                 let n = block[i];
-                n.interpret(n, frame);
+                n.interpret(n, stack);
                 i = i + 1;
             }
-            return frame.ret;
+            return undefined;
         }
     };
 };
@@ -1735,12 +1754,17 @@ let TypeofInterplet = function (value) {
     return {
         value: value,
         interpret: function (self, frame) {
-            let result = self.value.interpret(self.value, frame);
-            if (typeof result === "object" && result.type === "function") {
-                return "function";
+            try {
+                let result = self.value.interpret(self.value, frame);
+                if (typeof result === "object" && result.type === "function") {
+                    return "function";
+                }
+                else {
+                    return typeof result;
+                }
             }
-            else {
-                return typeof result;
+            catch (err) {
+                return typeof undefined;
             }
         }
     };
@@ -2073,17 +2097,18 @@ let main = function (readFileSync, log, native) {
     let source = readFileSync('./out.js', 'utf-8');
     let prefix = ['=', '<', '>', '!', '+', '-', '*', '&', '|', '/', '%', '^', '.'];
     let suffix = ['=', '<', '>', '&', '|', '.', '*'];
-    let tokens = tokenize(source, prefix, suffix);
+    log('tokenizing');
+    let tokens = tokenize(source, prefix, suffix, log);
+    log('parsing');
     let tree = parse(tokens);
     let frame = {
         locals: ['Infinity'],
         values: [Infinity],
-        ret: undefined,
-        globals: null,
-        finished: false
+        parent: null
     };
     let i = 0;
     let l = length(tree);
+    log('interpreting');
     while (i < l) {
         let node = tree[i];
         let interp = createInterp(node);
@@ -2091,6 +2116,7 @@ let main = function (readFileSync, log, native) {
         i = i + 1;
     }
     if (native) {
+        log('starting');
         let meta = frame.values[indexOf(frame.locals, 'main')];
         if (typeof meta !== "object" || meta.type !== "function") {
             log("Invalid main function");
@@ -2110,21 +2136,31 @@ let main = function (readFileSync, log, native) {
             },
             parameters: ['path']
         };
+        let ilength = {
+            type: "nativefunction",
+            body: function (a) {
+                if (typeof a === "string") {
+                    return a.length;
+                }
+                return a.values.length;
+            },
+            parameters: ['a']
+        };
         let stack = {
-            locals: ['readFileSync', 'log', 'native'],
-            values: [iread, ilog, false],
-            ret: undefined,
-            globals: frame,
-            finished: false
+            locals: ['readFileSync', 'log', 'native', 'jetLength'],
+            values: [iread, ilog, false, ilength],
+            parent: frame
         };
         i = 0;
         l = length(meta.body);
         while (i < l) {
             let s = meta.body[i];
-            s.interpret(s, stack);
-            if (stack.finished) {
-                log("finished");
-                break;
+            try {
+                s.interpret(s, stack);
+            }
+            catch (err) {
+                log(JSON.stringify(err, null, 2));
+                return;
             }
             i = i + 1;
         }

@@ -1,5 +1,5 @@
-import { Token } from './lexer';
-import { indexOf, length } from './util';
+import { Token } from './lexer.js';
+import { indexOf, length } from './util.js';
 
 type Id
   = "(name)"
@@ -177,7 +177,7 @@ let token_nr: number = 0;
 let node: ParseLet;
 let line: number = 1;
 
-let advance = function (id?: string): ParseLet {
+let advance = function (id: string | undefined): ParseLet {
   if (id !== undefined && node.id !== id) {
     throw Error("Expected '" + id + "', got '" + node.id + "'");
   }
@@ -288,11 +288,11 @@ let advance = function (id?: string): ParseLet {
 
 let expression = function (rbp: number) {
   let t = node;
-  node = advance();
+  node = advance(undefined);
   let left = t.nud(t);
   while (rbp < node.lbp) {
     t = node;
-    node = advance();
+    node = advance(undefined);
     left = t.led(t, left);
   }
   return left;
@@ -302,7 +302,7 @@ let statement = function () {
   let n = node;
 
   if (n.type === "StatementNode") {
-    node = advance();
+    node = advance(undefined);
     return n.std(n);
   }
 
@@ -322,7 +322,7 @@ let statements = function () {
   while (node.id !== "}" && node.id !== "(end)") {
     s = statement();
 
-    if (s) {
+    if (s !== undefined) {
       a = [...a, s];
     }
   }
@@ -341,7 +341,7 @@ let block = function () {
   }
 };
 
-let symbol = function (id: Id, bp?: number): ParseLet {
+let symbol = function (id: Id, bp: number | undefined): ParseLet {
   bp = bp === undefined ? 0 : bp;
   let s = symbol_table.read(symbol_table, id);
 
@@ -370,7 +370,7 @@ let symbol = function (id: Id, bp?: number): ParseLet {
 };
 
 let constant = function (s: Id, v: Literal): ParseLet {
-  let x = symbol(s);
+  let x = symbol(s, undefined);
   x.value = v;
   x.nud = function(parselet) {
     return {
@@ -383,7 +383,7 @@ let constant = function (s: Id, v: Literal): ParseLet {
   return x;
 };
 
-let infix = function (id: Id, bp: number, led?: ParseLet["led"]): ParseLet {
+let infix = function (id: Id, bp: number, led: ParseLet["led"] | undefined): ParseLet {
   let s = symbol(id, bp);
   s.type = "BinaryNode";
   if (led !== undefined) {
@@ -402,7 +402,7 @@ let infix = function (id: Id, bp: number, led?: ParseLet["led"]): ParseLet {
   return s;
 };
 
-let infixr = function (id: Id, bp: number, led?: ParseLet["led"]) {
+let infixr = function (id: Id, bp: number, led: ParseLet["led"] | undefined) {
   let s = symbol(id, bp);
   if (led !== undefined) {
     s.led = led;
@@ -439,8 +439,8 @@ let assignment = function (id: Id) {
   });
 };
 
-let prefix = function (id: Id, nud?: ParseLet["nud"]) {
-  let s = symbol(id);
+let prefix = function (id: Id, nud: ParseLet["nud"] | undefined) {
+  let s = symbol(id, undefined);
   if (nud !== undefined) {
     s.nud = nud;
   } else {
@@ -456,30 +456,30 @@ let prefix = function (id: Id, nud?: ParseLet["nud"]) {
 };
 
 let stmt = function (s: Id, f: ParseLet["std"]) {
-  let x = symbol(s);
+  let x = symbol(s, undefined);
   x.type = "StatementNode";
   x.std = f;
   return x;
 };
 
-symbol("(end)");
-symbol("(name)");
-symbol(":");
-symbol(";");
-symbol(")");
-symbol("]");
-symbol("}");
-symbol(",");
-symbol("else");
-symbol("catch");
-symbol("...");
+symbol("(end)", undefined);
+symbol("(name)", undefined);
+symbol(":", undefined);
+symbol(";", undefined);
+symbol(")", undefined);
+symbol("]", undefined);
+symbol("}", undefined);
+symbol(",", undefined);
+symbol("else", undefined);
+symbol("catch", undefined);
+symbol("...", undefined);
 
 constant("true", TRUE);
 constant("false", FALSE);
 constant("null", NULL);
 constant("undefined", UNDEFINED);
 
-symbol("(literal)");
+symbol("(literal)", undefined);
 
 assignment("=");
 
@@ -497,30 +497,30 @@ infix("?", 20, function (parselet, left) {
   };
 });
 
-infixr("&&", 30);
-infixr("||", 30);
+infixr("&&", 30, undefined);
+infixr("||", 30, undefined);
 
-infixr("===", 40);
-infixr("!==", 40);
-infixr("<", 40);
-infixr("<=", 40);
-infixr(">", 40);
-infixr(">=", 40);
+infixr("===", 40, undefined);
+infixr("!==", 40, undefined);
+infixr("<", 40, undefined);
+infixr("<=", 40, undefined);
+infixr(">", 40, undefined);
+infixr(">=", 40, undefined);
 
-infix("+", 50);
-infix("-", 50);
+infix("+", 50, undefined);
+infix("-", 50, undefined);
 
-infix("*", 60);
-infix("/", 60);
+infix("*", 60, undefined);
+infix("/", 60, undefined);
 
-infix("**", 70);
+infix("**", 70, undefined);
 
 infix(".", 80, function (parselet, left) {
   if (node.type !== "Name") {
     throw Error("Expected a property name.");
   }
   let n = node;
-  node = advance();
+  node = advance(undefined);
   return {
     type: "BinaryNode",
     id: ".",
@@ -589,8 +589,8 @@ infix("(", 80, function (parselet, left) {
   return n;
 });
 
-prefix("-");
-prefix("typeof");
+prefix("-", undefined);
+prefix("typeof", undefined);
 
 prefix("(", function () {
   let e = expression(0);
@@ -616,7 +616,7 @@ prefix("function", function () {
   }
   if (node.type === "Name") {
     n.name = node.id;
-    node = advance();
+    node = advance(undefined);
   }
   node = advance("(");
   if (node.id !== ")") {
@@ -625,7 +625,7 @@ prefix("function", function () {
         throw Error("Expected a parameter name.");
       }
       n.parameters.children = [...n.parameters.children, node.nud(node)];
-      node = advance();
+      node = advance(undefined);
       if (node.id !== ",") {
         break;
       }
@@ -712,7 +712,7 @@ prefix("{", function () {
         throw Error("Bad property name.");
       }
       let kn = n.nud(n);
-      node = advance();
+      node = advance(undefined);
       node = advance(":");
       v = expression(0);
       a.children = [...a.children, {
@@ -765,7 +765,7 @@ stmt("let", function () {
   if (n.type !== "Name") {
     throw Error("Expected a new variable name.");
   }
-  node = advance();
+  node = advance(undefined);
   
   if (node.id === ";") {
     node = advance(";");
@@ -925,7 +925,7 @@ stmt("while", function () {
 export let parse = function (tokenized: Token[]) {
   tokens = tokenized;
   token_nr = 0;
-  node = advance();
+  node = advance(undefined);
   let s = statements();
   node = advance("(end)");
   return s;

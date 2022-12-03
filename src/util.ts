@@ -187,10 +187,6 @@ export let ascii = [
 ];
 
 export let charcode = function (a: string) {
-  if (a === undefined) {
-    return undefined;
-  }
-  
   let code = indexOf(ascii, a);
 
   return code;

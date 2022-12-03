@@ -3,6 +3,9 @@
   "name": "workspace",
   "main": "src/index.js",
   "type": "module",
+  "scripts": {
+    "start": "src/run.js"
+  },
   "devDependencies": {
     "bun-types": "^0.1.4",
     "@types/node": "^18.6.5"

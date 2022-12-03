@@ -1,5 +1,5 @@
-import { Node } from "./parser";
-import { length, indexOf, lastIndexOf } from "./util";
+import { Node } from "./parser.js";
+import { length, indexOf, lastIndexOf } from "./util.js";
 
 type Value
   = string
@@ -45,9 +45,7 @@ interface SpreadMarker {
 export interface Frame {
   locals: string[];
   values: Value[];
-  ret: Value;
-  globals: Frame | null;
-  finished: boolean;
+  parent: Frame | null;
 }
 
 interface AstInterplet {
@@ -212,18 +210,22 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
     value: value,
     interpret: function(self, frame) {
       let v = self.value.interpret(self.value, frame);
+      let current = frame;
+      let index = -1;
 
-      let index = lastIndexOf(frame.locals, self.name);
-      if (index === -1) {
-        let globals = frame.globals;
-        if (globals !== null) {
-          index = lastIndexOf(globals.locals, self.name);
-          globals.values[index] = v;
-          return v;
+      while (current !== null) {
+        index = lastIndexOf(current.locals, self.name);
+        if (index !== -1) {
+          break;
         }
+        current = current.parent;
+      }
+
+      if (current === null) {
         throw Error("Assignment to undeclared variable");
       }
-      frame.values[index] = v;
+
+      current.values[index] = v;
 
       return v;
     }
@@ -273,6 +275,11 @@ let LetInterplet = function(name: string, value: AstInterplet): LetInterplet {
     value: value,
     interpret: function(self, frame) {
       let v = self.value.interpret(self.value, frame);
+      let exists = indexOf(self.name, frame.locals);
+
+      if (exists >= 0) {
+        throw Error("Cannot redeclare let-scoped variable");
+      }
 
       frame.locals = [...frame.locals, self.name];
       frame.values = [...frame.values, v];
@@ -291,20 +298,16 @@ let NameInterplet = function(name: string): NameInterplet {
   return {
     name: name,
     interpret: function(self, frame) {
-      let index = lastIndexOf(frame.locals, self.name);
+      let current = frame;
 
-      if (index >= 0) {
-        return frame.values[index];
-      }
+      while (current !== null) {
+        let index = lastIndexOf(current.locals, self.name);
 
-      let globals = frame.globals;
+        if (index >= 0) {
+          return current.values[index];
+        }
 
-      if (globals !== null) {
-        index = lastIndexOf(globals.locals, self.name);
-      }
-
-      if (index >= 0) {
-        return globals.values[index];
+        current = current.parent;
       }
 
       throw Error("Variable " + "'" + self.name + "'" + " does not exist");
@@ -328,19 +331,36 @@ let OperatorInterplet = function(operator: string, left: AstInterplet, right: As
     right: right,
     interpret: function(self, frame) {
       let left = self.left.interpret(self.left, frame);
-      let right = self.right.interpret(self.right, frame);
 
       if (self.operator === "&&" || self.operator === "||") {
-        if (typeof left !== "boolean" || typeof right !== "boolean") {
+        if (typeof left !== "boolean") {
           throw Error("&& or || values must be boolean");
         }
 
         if (self.operator === "&&") {
-          return left && right;
+          if (left === true) {
+            let r = self.right.interpret(self.right, frame);
+            if (typeof r !== "boolean") {
+              throw Error("&& or || values must be boolean");
+            }
+            return r;
+          }
+          return false;
         } else {
-          return left || right;
+          if (left === true) {
+            return true;
+          }
+          let r = self.right.interpret(self.right, frame);
+          if (typeof r !== "boolean") {
+            throw Error("&& or || values must be boolean");
+          }
+          return r;
         }
-      } else if (self.operator === "===") {
+      }
+
+      let right = self.right.interpret(self.right, frame);
+      
+      if (self.operator === "===") {
         return left === right;
       } else if (self.operator === "!==") {
         return left !== right;
@@ -406,9 +426,11 @@ let ReturnInterplet = function(value: AstInterplet): ReturnInterplet {
   return {
     value: value,
     interpret: function(self, frame): Value {
-      frame.ret = self.value.interpret(self.value, frame);
-      frame.finished = true;
-      return frame.ret;
+      let ret = self.value.interpret(self.value, frame);
+      throw {
+        type: 'return',
+        value: ret
+      }
     }
   }
 }
@@ -438,13 +460,11 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
 
       while (i < l) {
         if (i >= argI) {
-          locals = [...locals, f.parameters[i]];
-          values = [...values, undefined]; 
-        } else {
-          let a = self.args[i];
-          locals = [...locals, f.parameters[i]];
-          values = [...values, a.interpret(a, frame)];
+          throw Error("Not enough arguments")
         }
+        let a = self.args[i];
+        locals = [...locals, f.parameters[i]];
+        values = [...values, a.interpret(a, frame)];
         i = i + 1;
       }
       
@@ -455,25 +475,26 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       let stack: Frame = {
         locals: locals,
         values: values,
-        ret: undefined,
-        globals: frame.globals === null ? frame : frame.globals,
-        finished: false
+        parent: frame
       }
 
       i = 0;
       l = length(f.body);
       while (i < l) {
         let s = f.body[i];
-        s.interpret(s, stack);
-
-        if (stack.finished) {
-          break;
+        try {
+          s.interpret(s, stack);
+        } catch (err) {
+          if (typeof err === "object" && err.type === "return") {
+            return err.value;
+          }
+          throw err
         }
 
         i = i + 1;
       }
 
-      return stack.ret;
+      return undefined;
     }
   }
 }
@@ -511,22 +532,18 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
 
       while (i < l) {
         if (i >= argI) {
-          locals = [...locals, f.parameters[i]];
-          values = [...values, undefined]; 
-        } else {
-          let a = self.args[i];
-          locals = [...locals, f.parameters[i]];
-          values = [...values, a.interpret(a, frame)];
+          throw Error("Not enough arguments")
         }
+        let a = self.args[i];
+        locals = [...locals, f.parameters[i]];
+        values = [...values, a.interpret(a, frame)];
         i = i + 1;
       }
 
       let stack: Frame = {
         locals: locals,
         values: values,
-        ret: undefined,
-        globals: frame.globals === null ? frame : frame.globals,
-        finished: false
+        parent: frame
       }
 
       i = 0;
@@ -534,16 +551,19 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
 
       while (i < l) {
         let s = f.body[i];
-        s.interpret(s, stack);
-
-        if (stack.finished) {
-          break;
+        try {
+          s.interpret(s, stack);
+        } catch (err) {
+          if (typeof err === "object" && err.type === "return") {
+            return err.value;
+          }
+          throw err;
         }
 
         i = i + 1;
       }
 
-      return stack.ret;
+      return undefined;
     }
   }
 }
@@ -605,7 +625,6 @@ let DotInterplet = function(target: AstInterplet, key: string): DotInterplet {
       let target = self.target.interpret(self.target, frame);
 
       if (typeof target !== "object" || target.type !== "object") {
-        console.log(self.target, self.key, target, key);
         throw Error("Dot syntax can only be used on objects");
       }
 
@@ -629,6 +648,12 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
     condition: condition,
     block: block,
     interpret: function(self, frame): Value {
+      let stack: Frame = {
+        locals: [],
+        values: [],
+        parent: frame
+      };
+
       while (true) {
         let condition = self.condition.interpret(self.condition, frame);
 
@@ -644,7 +669,7 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
           let i = 0;
           let l = length(self.block);
           while (i < l) {
-            self.block[i].interpret(self.block[i], frame);
+            self.block[i].interpret(self.block[i], stack);
             i = i + 1;
           }
         } catch (e) {
@@ -657,8 +682,8 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
           throw e;
         }
       }
-
-      return frame.ret;
+    
+      return undefined;
     }
   }
 }
@@ -702,43 +727,35 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
     interpret: function(self, frame): Value {
       let i = 0;
       let l = 0;
+
       try {
         let block = self.block;
         l = length(block);
+        let stack: Frame = {
+          locals: [],
+          values: [],
+          parent: frame
+        }
         while (i < l) {
-          block[i].interpret(block[i], frame);
+          block[i].interpret(block[i], stack);
           i = i + 1;
         }
-        return frame.ret;
+        return undefined;
       } catch (err) {
-        frame.locals = [...frame.locals, self.name];
-        frame.values = [...frame.values, err];
+        let stack: Frame = {
+          locals: [self.name],
+          values: [err],
+          parent: frame
+        }
         let handler = self.handler;
         i = 0;
         l = length(handler);
         while (i < l) {
-          handler[i].interpret(handler[i], frame);
+          handler[i].interpret(handler[i], stack);
           i = i + 1;
         }
-        let locals = [];
-        let values = [];
-        i = 0;
-        l = length(frame.locals);
-        let index = lastIndexOf(frame.locals, self.name);
-        while (i < l) {
-          let v = frame.locals[i];
-          if (i === index) {
-            i = i + 1;
-            continue;
-          } else {
-            locals = [...locals, v];
-            values = [...values, frame.values[i]];
-            i = i + 1;
-          }
-        }
-        frame.locals = locals;
-        frame.values = values;
-        return frame.ret;
+
+        return undefined;
       }
     }
   }
@@ -781,12 +798,17 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
       }
       let i = 0;
       let l = length(block);
+      let stack: Frame = {
+        locals: [],
+        values: [],
+        parent: frame
+      }
       while (i < l) {
         let n = block[i];
-        n.interpret(n, frame);
+        n.interpret(n, stack);
         i = i + 1;
       }
-      return frame.ret;
+      return undefined;
     }
   }
 }
@@ -844,11 +866,15 @@ let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
   return {
     value: value,
     interpret: function(self, frame): Value {
-      let result = self.value.interpret(self.value, frame);
-      if (typeof result === "object" && result.type === "function") {
-        return "function";
-      } else {
-        return typeof result;
+      try {
+        let result = self.value.interpret(self.value, frame);
+        if (typeof result === "object" && result.type === "function") {
+          return "function";
+        } else {
+          return typeof result;
+        }
+      } catch (err) {
+        return typeof undefined;
       }
     }
   }

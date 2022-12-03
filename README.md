@@ -33,7 +33,7 @@ Some of these might be relaxed in the future in cases where the parser can figur
 - [x] Write interpreter in restricted js
 - [x] Execute lexer in meta-vm
 - [x] Execute parser in meta-vm
-- [ ] Execute meta-vm inside the meta-vm :)
+- [x] Execute meta-vm inside the meta-vm :)
 - [ ] Walk the heap and compile the meta-vm into C
 - [ ] Use the cross-compiled meta-vm to run the meta-vm inside the meta-vm :D
 - [ ] Add evaluation of top-level statements to the parser using the meta-vm
