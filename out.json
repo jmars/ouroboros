@@ -6,3 +6,22 @@ starting
 |: parsing
 |: interpreting
 {}
+437 |         target: target,
+438 |         key: key,
+439 |         interpret: function (self, frame) {
+440 |             let target = self.target.interpret(self.target, frame);
+441 |             if (target === null || typeof target !== "object" || target.type !== "object") {
+442 |                 throw Error("Dot syntax can only be used on objects");
+                          ^
+error: Dot syntax can only be used on objects
+      at /home/jaye/ouroboros/src/astinterp.js:442:22
+      at /home/jaye/ouroboros/src/astinterp.js:197:23
+      at /home/jaye/ouroboros/src/astinterp.js:204:32
+      at /home/jaye/ouroboros/src/astinterp.js:559:28
+      at /home/jaye/ouroboros/src/astinterp.js:537:20
+      at /home/jaye/ouroboros/src/astinterp.js:473:24
+      at /home/jaye/ouroboros/src/astinterp.js:381:20
+      at /home/jaye/ouroboros/src/astinterp.js:473:24
+      at /home/jaye/ouroboros/src/bootstrap.js:58:16
+      at /home/jaye/ouroboros/src/run.ts:4:0
+

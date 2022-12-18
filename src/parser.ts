@@ -1,5 +1,5 @@
 import { Token } from './lexer.js';
-import { indexOf, length } from './util.js';
+import { indexOf, length } from './util-native.js';
 
 type Id
   = "(name)"
@@ -163,7 +163,7 @@ let symbol_table = {
     }
     return value;
   },
-  read: function(self: any, key: string): ParseLet {
+  read: function(self: any, key: string): ParseLet | undefined {
     let index = indexOf(self.keys, key);
     if (index !== -1) {
       return self.values[index];
@@ -182,7 +182,11 @@ let advance = function (id: string | undefined): ParseLet {
     throw Error("Expected '" + id + "', got '" + node.id + "'");
   }
   if (token_nr >= length(tokens)) {
-    node = symbol_table.read(symbol_table, "(end)");
+    let n = symbol_table.read(symbol_table, "(end)");
+    if (n === undefined) {
+      throw Error("No end token in symbol table")
+    }
+    node = n;
     return node;
   }
   let t = tokens[token_nr];
@@ -303,6 +307,9 @@ let statement = function () {
 
   if (n.type === "StatementNode") {
     node = advance(undefined);
+    if (n.std === null) {
+      throw Error("Statement without handler");
+    }
     return n.std(n);
   }
 
@@ -335,6 +342,9 @@ let block = function () {
   node = advance("{");
 
   if (t.type === "StatementNode") {
+    if (t.std === null) {
+      throw Error('Statement without handler');
+    }
     return t.std(t);
   } else {
     throw Error("Invalid block");
@@ -357,7 +367,7 @@ let symbol = function (id: Id, bp: number | undefined): ParseLet {
       lbp: bp,
       value: SymbolLiteral(id),
       nud: function (parselet) {
-        throw Error("Undefined.");
+        throw Error(parselet.id + ": Undefined.");
       },
       led: function (ignore) {
         throw Error("Missing operator.");

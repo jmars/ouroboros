@@ -1,3 +1,5 @@
+import type { ErrorValue } from "./astinterp";
+
 export let length = function <T>(v: string | Array<T>): number {
   let i = 0;
   try {
@@ -190,10 +192,17 @@ export let charcode = function (a: string) {
   let code = indexOf(ascii, a);
 
   return code;
-}
+};
 
 export let codechar = function (a: number) {
   let char = ascii[a];
 
   return char;
-}
+};
+
+export let Error = function(msg: string): ErrorValue {
+  return {
+    type: "error",
+    message: msg
+  };
+};

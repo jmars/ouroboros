@@ -181,6 +181,11 @@ let codechar = function (a) {
     let char = ascii[a];
     return char;
 };
+let Error = function (msg) {
+    return {
+        message: msg
+    };
+};
 let tokenize = function (string, prefix, suffix, log) {
     if (string === undefined) {
         return [];
@@ -194,7 +199,7 @@ let tokenize = function (string, prefix, suffix, log) {
     let str = "";
     let q = charcode("");
     try {
-        while (c !== undefined && c !== -1) {
+        while (i < len) {
             let from = i;
             if (c <= charcode(" ")) {
                 if (c === charcode("\n")) {
@@ -433,7 +438,11 @@ let advance = function (id) {
         throw Error("Expected '" + id + "', got '" + node.id + "'");
     }
     if (token_nr >= length(tokens)) {
-        node = symbol_table.read(symbol_table, "(end)");
+        let n = symbol_table.read(symbol_table, "(end)");
+        if (n === undefined) {
+            throw Error("No end token in symbol table");
+        }
+        node = n;
         return node;
     }
     let t = tokens[token_nr];
@@ -556,6 +565,9 @@ let statement = function () {
     let n = node;
     if (n.type === "StatementNode") {
         node = advance(undefined);
+        if (n.std === null) {
+            throw Error("Statement without handler");
+        }
         return n.std(n);
     }
     let v = expression(0);
@@ -580,6 +592,9 @@ let block = function () {
     let t = node;
     node = advance("{");
     if (t.type === "StatementNode") {
+        if (t.std === null) {
+            throw Error('Statement without handler');
+        }
         return t.std(t);
     }
     else {
@@ -602,7 +617,7 @@ let symbol = function (id, bp) {
             lbp: bp,
             value: SymbolLiteral(id),
             nud: function (parselet) {
-                throw Error("Undefined.");
+                throw Error(parselet.id + ": Undefined.");
             },
             led: function (ignore) {
                 throw Error("Missing operator.");
@@ -1261,10 +1276,10 @@ let AssignmentInterplet = function (name, value) {
                 if (index !== -1) {
                     break;
                 }
+                if (current.parent === null) {
+                    throw Error("Assignment to undeclared variable");
+                }
                 current = current.parent;
-            }
-            if (current === null) {
-                throw Error("Assignment to undeclared variable");
             }
             current.values[index] = v;
             return v;
@@ -1297,9 +1312,9 @@ let LetInterplet = function (name, value) {
         value: value,
         interpret: function (self, frame) {
             let v = self.value.interpret(self.value, frame);
-            let exists = indexOf(self.name, frame.locals);
+            let exists = indexOf(frame.locals, self.name);
             if (exists >= 0) {
-                throw Error("Cannot redeclare let-scoped variable");
+                throw Error("Cannot redeclare let-scoped variable: " + self.name);
             }
             frame.locals = [...frame.locals, self.name];
             frame.values = [...frame.values, v];
@@ -1317,9 +1332,11 @@ let NameInterplet = function (name) {
                 if (index >= 0) {
                     return current.values[index];
                 }
+                if (current.parent === null) {
+                    throw Error("Attempt to access undeclared variable");
+                }
                 current = current.parent;
             }
-            throw Error("Variable " + "'" + self.name + "'" + " does not exist");
         }
     };
 };
@@ -1432,7 +1449,7 @@ let CallInterplet = function (func, args) {
         args: args,
         interpret: function (self, frame) {
             let f = self.func.interpret(self.func, frame);
-            if (typeof f !== "object" || f.type !== "function" && f.type !== "nativefunction") {
+            if (f === null || typeof f !== "object" || f.type !== "function" && f.type !== "nativefunction") {
                 throw Error("Attempt to call non-function");
             }
             let i = 0;
@@ -1487,7 +1504,7 @@ let MethodCallInterplet = function (obj, func, args) {
                 throw Error("Method calls are only allowed on objects");
             }
             let f = obj.values[indexOf(obj.keys, self.func)];
-            if (typeof f !== "object" || f.type !== "function") {
+            if (f === null || typeof f !== "object" || f.type !== "function") {
                 throw Error("Attempt to call non-function");
             }
             let i = 0;
@@ -1535,7 +1552,7 @@ let IndexInterplet = function (target, index) {
         interpret: function (self, frame) {
             let target = self.target.interpret(self.target, frame);
             let index = self.index.interpret(self.index, frame);
-            if (typeof target === "object") {
+            if (target !== null && typeof target === "object") {
                 if (target.type === "array" && typeof index === "number") {
                     if (index >= length(target.values)) {
                         throw Error("Out of bounds index");
@@ -1574,7 +1591,7 @@ let DotInterplet = function (target, key) {
         key: key,
         interpret: function (self, frame) {
             let target = self.target.interpret(self.target, frame);
-            if (typeof target !== "object" || target.type !== "object") {
+            if (target === null || typeof target !== "object" || target.type !== "object") {
                 throw Error("Dot syntax can only be used on objects");
             }
             if (indexOf(target.keys, self.key) === -1) {
@@ -1589,12 +1606,12 @@ let WhileInterplet = function (condition, block) {
         condition: condition,
         block: block,
         interpret: function (self, frame) {
-            let stack = {
-                locals: [],
-                values: [],
-                parent: frame
-            };
             while (true) {
+                let stack = {
+                    locals: [],
+                    values: [],
+                    parent: frame
+                };
                 let condition = self.condition.interpret(self.condition, frame);
                 if (typeof condition !== "boolean") {
                     throw Error("Invalid while condition");
@@ -1694,10 +1711,6 @@ let IfInterplet = function (condition, ifTrue, ifFalse) {
         interpret: function (self, frame) {
             let condition = self.condition.interpret(self.condition, frame);
             if (typeof condition !== "boolean") {
-                throw {
-                    self: self,
-                    frame: frame
-                };
                 throw Error("Invalid if condition: must be boolean");
             }
             let block = self.ifFalse;
@@ -1756,7 +1769,7 @@ let TypeofInterplet = function (value) {
         interpret: function (self, frame) {
             try {
                 let result = self.value.interpret(self.value, frame);
-                if (typeof result === "object" && result.type === "function") {
+                if (result !== null && typeof result === "object" && result.type === "function") {
                     return "function";
                 }
                 else {
@@ -1774,7 +1787,7 @@ let SpreadInterplet = function (value) {
         value: value,
         interpret: function (self, frame) {
             let target = self.value.interpret(self.value, frame);
-            if (typeof target !== "object" || (target.type !== "array" && target.type !== "object")) {
+            if (target === null || typeof target !== "object" || (target.type !== "array" && target.type !== "object")) {
                 throw Error("Can only spread objects and arrays");
             }
             return {
@@ -2090,11 +2103,10 @@ let createInterp = function (parsed) {
             return TernaryIfInterplet(condition, ifTrue, ifFalse);
         }
     }
-    console.error("Unhandled", parsed);
     throw Error("failed");
 };
-let main = function (readFileSync, log, native) {
-    let source = readFileSync('./out.js', 'utf-8');
+let main = function (rFS, log, native) {
+    let source = rFS('./out.js', 'utf-8');
     let prefix = ['=', '<', '>', '!', '+', '-', '*', '&', '|', '/', '%', '^', '.'];
     let suffix = ['=', '<', '>', '&', '|', '.', '*'];
     log('tokenizing');
@@ -2118,7 +2130,7 @@ let main = function (readFileSync, log, native) {
     if (native) {
         log('starting');
         let meta = frame.values[indexOf(frame.locals, 'main')];
-        if (typeof meta !== "object" || meta.type !== "function") {
+        if (meta === null || typeof meta !== "object" || meta.type !== "function") {
             log("Invalid main function");
             return;
         }
@@ -2132,23 +2144,13 @@ let main = function (readFileSync, log, native) {
         let iread = {
             type: "nativefunction",
             body: function (path) {
-                return readFileSync(path, 'utf-8');
+                return rFS(path, 'utf-8');
             },
             parameters: ['path']
         };
-        let ilength = {
-            type: "nativefunction",
-            body: function (a) {
-                if (typeof a === "string") {
-                    return a.length;
-                }
-                return a.values.length;
-            },
-            parameters: ['a']
-        };
         let stack = {
-            locals: ['readFileSync', 'log', 'native', 'jetLength'],
-            values: [iread, ilog, false, ilength],
+            locals: ['rFS', 'log', 'native'],
+            values: [iread, ilog, false],
             parent: frame
         };
         i = 0;
@@ -2160,6 +2162,7 @@ let main = function (readFileSync, log, native) {
             }
             catch (err) {
                 log(JSON.stringify(err, null, 2));
+                log(err);
                 return;
             }
             i = i + 1;

@@ -1,4 +1,4 @@
-import { length, indexOf, parseFloat, isFinite, codechar, charcode } from './util.js';
+import { length, indexOf, parseFloat, isFinite, codechar, charcode } from './util-native.js';
 
 export type Token = {
   type: "name" | "number" | "string" | "operator",
@@ -23,7 +23,7 @@ export let tokenize = function (string: string, prefix: string[], suffix: string
   let q: number = charcode("");
 
   try {
-    while (c !== undefined && c !== -1) {
+    while (i < len) {
       let from = i;
 
       if (c <= charcode(" ")) {

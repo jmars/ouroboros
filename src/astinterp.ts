@@ -1,5 +1,5 @@
 import { Node } from "./parser.js";
-import { length, indexOf, lastIndexOf } from "./util.js";
+import { length, indexOf, lastIndexOf } from "./util-native.js";
 
 type Value
   = string
@@ -12,6 +12,7 @@ type Value
   | FunctionValue
   | SpreadMarker
   | NativeFunction
+  | ErrorValue
 
 interface ValueArray {
   type: "array";
@@ -29,6 +30,11 @@ interface FunctionValue {
   type: "function";
   parameters: string[];
   body: AstInterplet[];
+}
+
+export interface ErrorValue {
+  type: "error";
+  message: string;
 }
 
 export interface NativeFunction {
@@ -218,11 +224,12 @@ let AssignmentInterplet = function(name: string, value: AstInterplet): Assignmen
         if (index !== -1) {
           break;
         }
-        current = current.parent;
-      }
 
-      if (current === null) {
-        throw Error("Assignment to undeclared variable");
+        if (current.parent === null) {
+          throw Error("Assignment to undeclared variable");
+        }
+
+        current = current.parent;
       }
 
       current.values[index] = v;
@@ -275,10 +282,10 @@ let LetInterplet = function(name: string, value: AstInterplet): LetInterplet {
     value: value,
     interpret: function(self, frame) {
       let v = self.value.interpret(self.value, frame);
-      let exists = indexOf(self.name, frame.locals);
+      let exists = indexOf(frame.locals, self.name);
 
       if (exists >= 0) {
-        throw Error("Cannot redeclare let-scoped variable");
+        throw Error("Cannot redeclare let-scoped variable: " + self.name);
       }
 
       frame.locals = [...frame.locals, self.name];
@@ -307,10 +314,12 @@ let NameInterplet = function(name: string): NameInterplet {
           return current.values[index];
         }
 
+        if (current.parent === null) {
+          throw Error("Attempt to access undeclared variable");
+        }
+
         current = current.parent;
       }
-
-      throw Error("Variable " + "'" + self.name + "'" + " does not exist");
     }
   }
 }
@@ -448,7 +457,7 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
     interpret: function(self, frame): Value {
       let f = self.func.interpret(self.func, frame);
 
-      if (typeof f !== "object" || f.type !== "function" && f.type !== "nativefunction") {
+      if (f === null || typeof f !== "object" || f.type !== "function" && f.type !== "nativefunction") {
         throw Error("Attempt to call non-function");
       }
 
@@ -484,11 +493,13 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
         let s = f.body[i];
         try {
           s.interpret(s, stack);
-        } catch (err) {
+        } catch (err: any) {
+          // TODO: interpreter catching host errors, attach handlers to stack frames and use non-native throw
+          // TODO: object space for typeof and others
           if (typeof err === "object" && err.type === "return") {
             return err.value;
           }
-          throw err
+          throw err;
         }
 
         i = i + 1;
@@ -520,7 +531,7 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
 
       let f = obj.values[indexOf(obj.keys, self.func)];
 
-      if (typeof f !== "object" || f.type !== "function") {
+      if (f === null || typeof f !== "object" || f.type !== "function") {
         throw Error("Attempt to call non-function");
       }
 
@@ -553,7 +564,7 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
         let s = f.body[i];
         try {
           s.interpret(s, stack);
-        } catch (err) {
+        } catch (err: any) {
           if (typeof err === "object" && err.type === "return") {
             return err.value;
           }
@@ -582,7 +593,7 @@ let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexI
       let target = self.target.interpret(self.target, frame);
       let index = self.index.interpret(self.index, frame);
 
-      if (typeof target === "object") {
+      if (target !== null && typeof target === "object") {
         if (target.type === "array" && typeof index === "number") {
           if (index >= length(target.values)) {
             throw Error("Out of bounds index");
@@ -624,7 +635,7 @@ let DotInterplet = function(target: AstInterplet, key: string): DotInterplet {
     interpret: function(self, frame): Value {
       let target = self.target.interpret(self.target, frame);
 
-      if (typeof target !== "object" || target.type !== "object") {
+      if (target === null || typeof target !== "object" || target.type !== "object") {
         throw Error("Dot syntax can only be used on objects");
       }
 
@@ -648,13 +659,13 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
     condition: condition,
     block: block,
     interpret: function(self, frame): Value {
-      let stack: Frame = {
-        locals: [],
-        values: [],
-        parent: frame
-      };
-
       while (true) {
+        let stack: Frame = {
+          locals: [],
+          values: [],
+          parent: frame
+        };
+
         let condition = self.condition.interpret(self.condition, frame);
 
         if (typeof condition !== "boolean") {
@@ -744,7 +755,7 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
       } catch (err) {
         let stack: Frame = {
           locals: [self.name],
-          values: [err],
+          values: [err as any],
           parent: frame
         }
         let handler = self.handler;
@@ -868,7 +879,7 @@ let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
     interpret: function(self, frame): Value {
       try {
         let result = self.value.interpret(self.value, frame);
-        if (typeof result === "object" && result.type === "function") {
+        if (result !== null && typeof result === "object" && result.type === "function") {
           return "function";
         } else {
           return typeof result;
@@ -890,7 +901,7 @@ let SpreadInterplet = function(value: AstInterplet): SpreadInterplet {
     value: value,
     interpret: function(self, frame): Value {
       let target = self.value.interpret(self.value, frame);
-      if (typeof target !== "object" || (target.type !== "array" && target.type !== "object")) {
+      if (target === null || typeof target !== "object" || (target.type !== "array" && target.type !== "object")) {
         throw Error("Can only spread objects and arrays");
       }
       return {
@@ -1174,7 +1185,7 @@ export let createInterp = function(parsed: Node): AstInterplet {
       if (ifTrue.type !== "NodeList") {
         throw Error("Invalid if true block");
       }
-      let trueBlock = [];
+      let trueBlock: AstInterplet[] = [];
       let i = 0;
       let l = length(ifTrue.children);
       while (i < l) {
@@ -1192,7 +1203,7 @@ export let createInterp = function(parsed: Node): AstInterplet {
       if (ifFalse.type !== "NodeList") {
         throw Error("Invalid if false block");
       }
-      let falseBlock = [];
+      let falseBlock: AstInterplet[] = [];
       i = 0;
       l = length(ifFalse.children);
       while (i < l) {
@@ -1235,6 +1246,5 @@ export let createInterp = function(parsed: Node): AstInterplet {
       return TernaryIfInterplet(condition, ifTrue, ifFalse);
     }
   }
-  console.error("Unhandled", parsed);
   throw Error("failed");
 };

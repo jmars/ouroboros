@@ -1,10 +1,10 @@
 import { Frame, createInterp, NativeFunction } from './astinterp.js';
 import { tokenize } from './lexer.js';
 import { parse } from './parser.js';
-import { indexOf, length } from './util.js';
+import { indexOf, length } from './util-native.js';
 
-export let main = function(readFileSync, log, native) {
-  let source = readFileSync('./out.js', 'utf-8');
+export let main = function(rFS: typeof import('fs')['readFileSync'], log: typeof console.log, native: boolean) {
+  let source = rFS('./out.js', 'utf-8');
   let prefix = ['=', '<', '>', '!', '+', '-', '*', '&', '|', '/', '%', '^', '.'];
   let suffix = ['=', '<', '>', '&', '|', '.', '*'];
 
@@ -33,14 +33,14 @@ export let main = function(readFileSync, log, native) {
     log('starting')
     let meta = frame.values[indexOf(frame.locals, 'main')];
     
-    if (typeof meta !== "object" || meta.type !== "function") {
+    if (meta === null || typeof meta !== "object" || meta.type !== "function") {
       log("Invalid main function");
       return;
     }
 
     let ilog: NativeFunction = {
       type: "nativefunction",
-      body: function(arg) {
+      body: function(arg: string) {
         log("|: " + arg);
       },
       parameters: ['string']
@@ -48,26 +48,15 @@ export let main = function(readFileSync, log, native) {
 
     let iread: NativeFunction = {
       type: "nativefunction",
-      body: function(path) {
-        return readFileSync(path, 'utf-8');
+      body: function(path: string) {
+        return rFS(path, 'utf-8');
       },
       parameters: ['path']
     }
 
-    let ilength: NativeFunction = {
-      type: "nativefunction",
-      body: function(a) {
-        if (typeof a === "string") {
-          return a.length;
-        }
-        return a.values.length;
-      },
-      parameters: ['a']
-    }
-
     let stack: Frame = {
-      locals: ['readFileSync', 'log', 'native', 'jetLength'],
-      values: [iread, ilog, false, ilength],
+      locals: ['rFS', 'log', 'native'],
+      values: [iread, ilog, false],
       parent: frame
     }
 
@@ -79,6 +68,7 @@ export let main = function(readFileSync, log, native) {
         s.interpret(s, stack);
       } catch (err) {
         log(JSON.stringify(err, null, 2));
+        log(err);
         return;
       }
       
