@@ -51,7 +51,6 @@ interface SpreadMarker {
 export interface Scope {
   locals: string[];
   values: Value[];
-  errorHandler: Array<AstInterplet[]>;
   parent: Scope | null;
   frame: Frame;
 }
@@ -59,6 +58,22 @@ export interface Scope {
 export interface Frame {
   parent: Frame | null;
 }
+
+let NONE = 0 as const;
+let CONTINUE = 1 as const;
+let BREAK = 2 as const;
+let THROW = 3 as const;
+let RETURN = 4 as const;
+
+type UnwindType
+  = typeof NONE
+  | typeof CONTINUE
+  | typeof BREAK
+  | typeof THROW
+  | typeof RETURN;
+
+let unwinding: UnwindType = NONE;
+let unwindValue: Value = null;
 
 interface AstInterplet {
   interpret(self: AstInterplet, scope: Scope): Value;
@@ -141,7 +156,7 @@ let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterp
     interpret: function(self, scope) {
       let result: Value[] = [];
       let i = 0;
-      let l = length(self.expressions)
+      let l = length(self.expressions);
       while (i < l) {
         let expr = self.expressions[i];
         let value = expr.interpret(expr, scope);
@@ -442,10 +457,9 @@ let ReturnInterplet = function(value: AstInterplet): ReturnInterplet {
     value: value,
     interpret: function(self, scope): Value {
       let ret = self.value.interpret(self.value, scope);
-      throw {
-        type: 'return',
-        value: ret
-      }
+      unwindValue = ret;
+      unwinding = RETURN;
+      return undefined;
     }
   }
 }
@@ -495,7 +509,6 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
         locals: locals,
         values: values,
         frame: frame,
-        errorHandler: [],
         parent: scope
       }
 
@@ -503,15 +516,17 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
       l = length(f.body);
       while (i < l) {
         let s = f.body[i];
-        try {
-          s.interpret(s, stack);
-        } catch (err: any) {
-          // TODO: interpreter catching host errors, attach handlers to stack frames and use non-native throw
-          // TODO: object space for typeof and others
-          if (typeof err === "object" && err.type === "return") {
-            return err.value;
+        s.interpret(s, stack);
+
+        if (unwinding !== NONE) {
+          if (unwinding === RETURN) {
+            let ret = unwindValue;
+            unwinding = NONE;
+            unwindValue = null;
+            return ret;
+          } else {
+            return undefined;
           }
-          throw err;
         }
 
         i = i + 1;
@@ -571,7 +586,6 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
         locals: locals,
         values: values,
         parent: scope,
-        errorHandler: [],
         frame: frame
       }
 
@@ -580,13 +594,17 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
 
       while (i < l) {
         let s = f.body[i];
-        try {
-          s.interpret(s, stack);
-        } catch (err: any) {
-          if (typeof err === "object" && err.type === "return") {
-            return err.value;
+        s.interpret(s, stack);
+
+        if (unwinding !== NONE) {
+          if (unwinding === RETURN) {
+            let ret = unwindValue;
+            unwinding = NONE;
+            unwindValue = null;
+            return ret;
+          } else {
+            return undefined;
           }
-          throw err;
         }
 
         i = i + 1;
@@ -614,7 +632,7 @@ let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexI
       if (target !== null && typeof target === "object") {
         if (target.type === "array" && typeof index === "number") {
           if (index >= length(target.values)) {
-            throw Error("Out of bounds index");
+            return undefined;
           } else {
             return target.values[index];
           }
@@ -631,7 +649,7 @@ let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexI
         }
       } else if (typeof target === "string" && typeof index === "number") {
         if (index >= length(target)) {
-          throw Error("Out of bounds index");
+          return undefined;
         } else {
           return target[index];
         }
@@ -677,12 +695,12 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
     condition: condition,
     block: block,
     interpret: function(self, scope): Value {
-      while (true) {
+      let broken = false;
+      while (broken === false) {
         let stack: Scope = {
           locals: [],
           values: [],
           parent: scope,
-          errorHandler: [],
           frame: scope.frame
         };
 
@@ -696,21 +714,25 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
           break;
         }
 
-        try {
-          let i = 0;
-          let l = length(self.block);
-          while (i < l) {
-            self.block[i].interpret(self.block[i], stack);
-            i = i + 1;
+        let i = 0;
+        let l = length(self.block);
+        while (i < l) {
+          self.block[i].interpret(self.block[i], stack);
+
+          if (unwinding !== NONE) {
+            if (unwinding === BREAK) {
+              unwinding = NONE;
+              broken = true;
+              i = l;
+            } else if (unwinding === CONTINUE) {
+              unwinding = NONE;
+              i = l;
+            } else {
+              return undefined;
+            }
           }
-        } catch (e) {
-          if (e === "break") {
-            break;
-          }
-          if (e === "continue") {
-            continue;
-          }
-          throw e;
+
+          i = i + 1;
         }
       }
     
@@ -726,7 +748,8 @@ interface BreakInterplet extends AstInterplet {
 let BreakInterplet = function(): BreakInterplet {
   return {
     interpret: function(self, scope): Value {
-      throw "break";
+      unwinding = BREAK;
+      return undefined;
     }
   }
 }
@@ -738,7 +761,8 @@ interface ContinueInterplet extends AstInterplet {
 let ContinueInterplet = function(): ContinueInterplet {
   return {
     interpret: function(self, scope): Value {
-      throw "continue";
+      unwinding = CONTINUE;
+      return undefined;
     }
   }
 }
@@ -759,39 +783,42 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
       let i = 0;
       let l = 0;
 
-      try {
-        let block = self.block;
-        l = length(block);
-        let stack: Scope = {
-          locals: [],
-          values: [],
-          parent: scope,
-          frame: scope.frame,
-          errorHandler: []
-        }
-        while (i < l) {
-          block[i].interpret(block[i], stack);
-          i = i + 1;
-        }
-        return undefined;
-      } catch (err) {
-        let stack: Scope = {
-          locals: [self.name],
-          values: [err as ErrorValue],
-          parent: scope,
-          errorHandler: [],
-          frame: scope.frame
-        }
-        let handler = self.handler;
-        i = 0;
-        l = length(handler);
-        while (i < l) {
-          handler[i].interpret(handler[i], stack);
-          i = i + 1;
+      let block = self.block;
+      l = length(block);
+
+      let stack: Scope = {
+        locals: [],
+        values: [],
+        parent: scope,
+        frame: scope.frame
+      }
+
+      while (i < l) {
+        block[i].interpret(block[i], stack);
+
+        if (unwinding !== NONE) {
+          if (unwinding === THROW) {
+            unwinding = NONE;
+            i = l;
+
+            let stack = scope;
+            let handler = self.handler;
+      
+            let ii = 0;
+            let ll = length(handler);
+            while (ii < ll) {
+              handler[ii].interpret(handler[ii], stack);
+              ii = ii + 1;
+            }
+          } else {
+            return undefined;
+          }
         }
 
-        return undefined;
+        i = i + 1;
       }
+
+      return undefined;
     }
   }
 }
@@ -805,7 +832,8 @@ let ThrowInterplet = function(err: AstInterplet): ThrowInterplet {
   return {
     err: err,
     interpret: function(self, scope): Value {
-      throw self.err.interpret(self.err, scope);
+      unwinding = THROW;
+      return undefined;
     }
   }
 }
@@ -837,12 +865,16 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
         locals: [],
         values: [],
         parent: scope,
-        errorHandler: [],
         frame: scope.frame
       }
       while (i < l) {
         let n = block[i];
         n.interpret(n, stack);
+
+        if (unwinding !== NONE) {
+          i = l;
+        }
+
         i = i + 1;
       }
       return undefined;
@@ -903,15 +935,11 @@ let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
   return {
     value: value,
     interpret: function(self, scope): Value {
-      try {
-        let result = self.value.interpret(self.value, scope);
-        if (result !== null && typeof result === "object" && result.type === "function") {
-          return "function";
-        } else {
-          return typeof result;
-        }
-      } catch (err) {
-        return typeof undefined;
+      let result = self.value.interpret(self.value, scope);
+      if (result !== null && typeof result === "object" && result.type === "function") {
+        return "function";
+      } else {
+        return typeof result;
       }
     }
   }

@@ -2,16 +2,12 @@ import type { ErrorValue } from "./astinterp";
 
 export let length = function <T>(v: string | Array<T>): number {
   let i = 0;
-  try {
-    let e = v[i];
-    while (e !== undefined) {
-      i = i + 1;
-      e = v[i];
-    }
-    return i;
-  } catch (e) {
-    return i;
+  let e = v[i];
+  while (e !== undefined) {
+    i = i + 1;
+    e = v[i];
   }
+  return i;
 };
 
 export let indexOf = function <T>(a: string | Array<T>, v: T): number {
