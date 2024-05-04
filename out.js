@@ -1,16 +1,11 @@
 let length = function (v) {
     let i = 0;
-    try {
-        let e = v[i];
-        while (e !== undefined) {
-            i = i + 1;
-            e = v[i];
-        }
-        return i;
+    let e = v[i];
+    while (e !== undefined) {
+        i = i + 1;
+        e = v[i];
     }
-    catch (e) {
-        return i;
-    }
+    return i;
 };
 let indexOf = function (a, v) {
     let i = 0;
@@ -183,6 +178,7 @@ let codechar = function (a) {
 };
 let Error = function (msg) {
     return {
+        type: "error",
         message: msg
     };
 };
@@ -198,197 +194,143 @@ let tokenize = function (string, prefix, suffix, log) {
     let result = [];
     let str = "";
     let q = charcode("");
-    try {
-        while (i < len) {
-            let from = i;
-            if (c <= charcode(" ")) {
-                if (c === charcode("\n")) {
-                    line = line + 1;
-                }
-                i = i + 1;
-                c = charcode(string[i]);
+    while (i < len) {
+        let from = i;
+        if (c <= charcode(" ")) {
+            if (c === charcode("\n")) {
+                line = line + 1;
             }
-            else if ((c >= charcode("a") && c <= charcode("z")) || (c >= charcode("A") && c <= charcode("Z"))) {
-                str = codechar(c);
+            i = i + 1;
+            c = charcode(string[i]);
+        }
+        else if ((c >= charcode("a") && c <= charcode("z")) || (c >= charcode("A") && c <= charcode("Z"))) {
+            str = codechar(c);
+            i = i + 1;
+            while (i < len && ((c = charcode(string[i])) >= charcode("a") && c <= charcode("z") || (c >= charcode("A") && c <= charcode("Z")) || (c >= charcode("0") && c <= charcode("9")) || c === charcode("_"))) {
+                str = str + codechar(c);
                 i = i + 1;
-                while (true) {
-                    c = charcode(string[i]);
-                    if ((c >= charcode("a") && c <= charcode("z"))
-                        || (c >= charcode("A") && c <= charcode("Z"))
-                        || (c >= charcode("0") && c <= charcode("9"))
-                        || c === charcode("_")) {
-                        str = str + codechar(c);
-                        i = i + 1;
-                    }
-                    else {
-                        break;
-                    }
-                }
-                result = [...result, {
-                        type: "name",
-                        value: str,
-                        from: from,
-                        to: i,
-                        line: line
-                    }];
             }
-            else if (c >= charcode("0") && c <= charcode("9")) {
-                str = codechar(c);
+            result = [...result, {
+                    type: "name",
+                    value: str,
+                    from: from,
+                    to: i,
+                    line: line
+                }];
+        }
+        else if (c >= charcode("0") && c <= charcode("9")) {
+            str = codechar(c);
+            i = i + 1;
+            while (i < len && (c = charcode(string[i])) >= charcode("0") && c <= charcode("9")) {
+                str = str + codechar(c);
                 i = i + 1;
-                while (true) {
-                    c = charcode(string[i]);
-                    if (c < charcode("0") || c > charcode("9")) {
-                        break;
-                    }
-                    i = i + 1;
+            }
+            if (c === charcode(".")) {
+                str = str + codechar(c);
+                i = i + 1;
+                while (i < len && (c = charcode(string[i])) >= charcode("0") && c <= charcode("9")) {
                     str = str + codechar(c);
+                    i = i + 1;
                 }
-                if (c === charcode(".")) {
-                    i = i + 1;
+            }
+            if (c === charcode("e") || c === charcode("E")) {
+                str = str + codechar(c);
+                i = i + 1;
+                if (i < len && ((c = charcode(string[i])) === charcode("-") || c === charcode("+"))) {
                     str = str + codechar(c);
-                    while (true) {
-                        c = charcode(string[i]);
-                        if (c < charcode("0") || c > charcode("9")) {
-                            break;
-                        }
-                        i = i + 1;
-                        str = str + codechar(c);
-                    }
+                    i = i + 1;
                 }
-                if (c === charcode("e") || c === charcode("E")) {
-                    i = i + 1;
+                if (i < len && (c = charcode(string[i])) >= charcode("0") && c <= charcode("9")) {
                     str = str + codechar(c);
+                    i = i + 1;
                     c = charcode(string[i]);
-                    if (c === charcode("-") || c === charcode("+")) {
-                        i = i + 1;
+                    while (i < len && c >= charcode("0") && c <= charcode("9")) {
                         str = str + codechar(c);
+                        i = i + 1;
                         c = charcode(string[i]);
                     }
-                    if (c < charcode("0") || c > charcode("9")) {
-                        throw Error("Bad exponent");
-                    }
-                    i = i + 1;
-                    str = str + codechar(c);
-                    c = charcode(string[i]);
-                    while (c >= charcode("0") && c <= charcode("9")) {
-                        i = i + 1;
-                        str = str + codechar(c);
-                        c = charcode(string[i]);
-                    }
-                }
-                if (c >= charcode("a") && c <= charcode("z")) {
-                    str = str + codechar(c);
-                    i = i + 1;
-                    throw Error("Bad number");
-                }
-                n = parseFloat(str);
-                if (isFinite(n)) {
-                    result = [...result, {
-                            type: "number",
-                            value: n,
-                            from: from,
-                            to: i,
-                            line: line
-                        }];
                 }
                 else {
-                    throw Error("Bad number");
+                    throw Error("Bad exponent");
                 }
             }
-            else if (c === charcode("\"") || c === charcode("'")) {
-                str = "";
-                q = c;
-                i = i + 1;
-                while (true) {
-                    c = charcode(string[i]);
-                    if (c < charcode(" ")) {
-                        throw Error("Unterminated/Control character in string");
-                    }
-                    if (c === q) {
-                        break;
-                    }
-                    if (c === charcode("\\")) {
-                        i = i + 1;
-                        if (i >= len) {
-                            throw Error("Unterminated string");
-                        }
-                        c = charcode(string[i]);
-                        if (c === charcode("b")) {
-                            c = charcode("\b");
-                        }
-                        else if (c === charcode("f")) {
-                            c = charcode("\f");
-                        }
-                        else if (c === charcode("n")) {
-                            c = charcode("\n");
-                        }
-                        else if (c === charcode("r")) {
-                            c = charcode("\r");
-                        }
-                        else if (c === charcode("t")) {
-                            c = charcode("\t");
-                        }
-                        else if (c === charcode("u")) {
-                            throw Error("Unicode escapes not supported");
-                        }
-                    }
-                    str = str + codechar(c);
-                    i = i + 1;
-                }
-                i = i + 1;
+            n = parseFloat(str);
+            if (isFinite(n)) {
                 result = [...result, {
-                        type: "string",
-                        value: str,
-                        from: from,
-                        to: i,
-                        line: line
-                    }];
-                c = charcode(string[i]);
-            }
-            else if (c === charcode("/") && string[i + 1] === "/") {
-                i = i + 1;
-                while (true) {
-                    c = charcode(string[i]);
-                    if (c === charcode("\n") || c === charcode("\r") || c === charcode("")) {
-                        break;
-                    }
-                    i = i + 1;
-                }
-            }
-            else if (indexOf(prefix, codechar(c)) >= 0) {
-                str = codechar(c);
-                i = i + 1;
-                while (true) {
-                    c = charcode(string[i]);
-                    if (i >= len || indexOf(suffix, codechar(c)) < 0) {
-                        break;
-                    }
-                    str = str + codechar(c);
-                    i = i + 1;
-                }
-                result = [...result, {
-                        type: "operator",
-                        value: str,
+                        type: "number",
+                        value: n,
                         from: from,
                         to: i,
                         line: line
                     }];
             }
             else {
+                throw Error("Bad number");
+            }
+        }
+        else if (c === charcode("\"") || c === charcode("'")) {
+            str = "";
+            q = c;
+            i = i + 1;
+            while (i < len && (c = charcode(string[i])) !== q) {
+                if (c < charcode(" ")) {
+                    throw Error("Unterminated/Control character in string");
+                }
+                if (c === charcode("\\")) {
+                    i = i + 1;
+                    if (i >= len) {
+                        throw Error("Unterminated string");
+                    }
+                    c = charcode(string[i]);
+                    // Handle escape characters here
+                }
+                str = str + codechar(c);
                 i = i + 1;
-                result = [...result, {
-                        type: "operator",
-                        value: codechar(c),
-                        from: from,
-                        to: i,
-                        line: line
-                    }];
+            }
+            i = i + 1; // Skip the closing quote
+            result = [...result, {
+                    type: "string",
+                    value: str,
+                    from: from,
+                    to: i,
+                    line: line
+                }];
+            c = charcode(string[i]);
+        }
+        else if (c === charcode("/") && string[i + 1] === "/") {
+            i = i + 2;
+            while (i < len && (c = charcode(string[i])) !== charcode("\n") && c !== charcode("\r")) {
+                i = i + 1;
+            }
+        }
+        else if (indexOf(prefix, codechar(c)) >= 0) {
+            str = codechar(c);
+            i = i + 1;
+            while (i < len && indexOf(suffix, codechar((c = charcode(string[i])))) >= 0) {
+                str = str + codechar(c);
+                i = i + 1;
+            }
+            result = [...result, {
+                    type: "operator",
+                    value: str,
+                    from: from,
+                    to: i,
+                    line: line
+                }];
+        }
+        else {
+            i = i + 1;
+            result = [...result, {
+                    type: "operator",
+                    value: codechar(c),
+                    from: from,
+                    to: i,
+                    line: line
+                }];
+            if (i < len) {
                 c = charcode(string[i]);
             }
         }
-    }
-    catch (e) {
-        return result;
     }
     return result;
 };
@@ -464,12 +406,13 @@ let advance = function (id) {
                 type: "Name",
                 lbp: 0,
                 value: SymbolLiteral(v),
+                line: line,
                 nud: function (parselet) {
                     let value = parselet.value;
                     if (value.type !== "Symbol") {
                         throw Error("Unreachable");
                     }
-                    return { type: "Name", value: value.value, id: "(name)" };
+                    return { type: "Name", value: value.value, id: "(name)", line: parselet.line };
                 },
                 led: function () {
                     throw Error("Invalid name token");
@@ -496,6 +439,7 @@ let advance = function (id) {
             id: "(literal)",
             type: "LiteralNode",
             lbp: 0,
+            line: line,
             value: StringLiteral(v),
             nud: function (parselet) {
                 let value = parselet.value;
@@ -505,6 +449,7 @@ let advance = function (id) {
                 return {
                     type: "LiteralNode",
                     id: "(literal)",
+                    line: parselet.line,
                     value: {
                         type: "String",
                         value: value.value
@@ -525,6 +470,7 @@ let advance = function (id) {
             id: "(literal)",
             type: "LiteralNode",
             lbp: 0,
+            line: line,
             value: NumberLiteral(v),
             nud: function (parselet) {
                 let value = parselet.value;
@@ -534,6 +480,7 @@ let advance = function (id) {
                 return {
                     type: "LiteralNode",
                     id: "(literal)",
+                    line: parselet.line,
                     value: {
                         type: "Number",
                         value: value.value
@@ -572,6 +519,7 @@ let statement = function () {
     }
     let v = expression(0);
     if ((v.type !== "BinaryNode" || v.assignment === false) && v.id !== "(") {
+        console.log('===', line);
         throw Error("Bad expression statement.");
     }
     node = advance(";");
@@ -615,6 +563,7 @@ let symbol = function (id, bp) {
             type: "LiteralNode",
             id: id,
             lbp: bp,
+            line: line,
             value: SymbolLiteral(id),
             nud: function (parselet) {
                 throw Error(parselet.id + ": Undefined.");
@@ -634,6 +583,7 @@ let constant = function (s, v) {
     x.nud = function (parselet) {
         return {
             type: "LiteralNode",
+            line: parselet.line,
             value: parselet.value,
             id: parselet.id
         };
@@ -650,6 +600,7 @@ let infix = function (id, bp, led) {
         s.led = function (parselet, left) {
             return {
                 type: "BinaryNode",
+                line: parselet.line,
                 left: left,
                 right: expression(parselet.lbp),
                 assignment: false,
@@ -668,6 +619,7 @@ let infixr = function (id, bp, led) {
         s.led = function (parselet, left) {
             return {
                 type: "BinaryNode",
+                line: parselet.line,
                 left: left,
                 right: expression(parselet.lbp - 1),
                 assignment: false,
@@ -686,6 +638,7 @@ let assignment = function (id) {
         }
         return {
             type: "BinaryNode",
+            line: parselet.line,
             id: parselet.id,
             left: left,
             right: expression(0),
@@ -702,6 +655,7 @@ let prefix = function (id, nud) {
         s.nud = function (parselet) {
             return {
                 type: "UnaryNode",
+                line: parselet.line,
                 id: parselet.id,
                 value: expression(70)
             };
@@ -739,6 +693,7 @@ infix("?", 20, function (parselet, left) {
     let third = expression(0);
     return {
         type: "TernaryNode",
+        line: parselet.line,
         id: '?',
         first: first,
         second: second,
@@ -766,6 +721,7 @@ infix(".", 80, function (parselet, left) {
     node = advance(undefined);
     return {
         type: "BinaryNode",
+        line: parselet.line,
         id: ".",
         left: left,
         right: n.nud(n),
@@ -775,6 +731,7 @@ infix(".", 80, function (parselet, left) {
 infix("[", 80, function (parselet, left) {
     let n = {
         type: "BinaryNode",
+        line: parselet.line,
         id: "[",
         left: left,
         right: expression(0),
@@ -786,6 +743,7 @@ infix("[", 80, function (parselet, left) {
 infix("(", 80, function (parselet, left) {
     let a = {
         type: "NodeList",
+        line: parselet.line,
         id: "(",
         children: []
     };
@@ -793,6 +751,7 @@ infix("(", 80, function (parselet, left) {
     if ((left.id === "." || left.id === "[") && left.type === "BinaryNode") {
         n = {
             type: "TernaryNode",
+            line: parselet.line,
             id: "(",
             first: left.left,
             second: left.right,
@@ -802,6 +761,7 @@ infix("(", 80, function (parselet, left) {
     else {
         n = {
             type: "BinaryNode",
+            line: parselet.line,
             id: "(",
             left: left,
             right: a,
@@ -816,6 +776,7 @@ infix("(", 80, function (parselet, left) {
             throw Error("Expected a variable name.");
         }
     }
+    // TODO: get rid of the while true?
     if (node.id !== ")") {
         while (true) {
             a.children = [...a.children, expression(0)];
@@ -830,23 +791,26 @@ infix("(", 80, function (parselet, left) {
 });
 prefix("-", undefined);
 prefix("typeof", undefined);
-prefix("(", function () {
+prefix("(", function (parselet) {
     let e = expression(0);
     node = advance(")");
     return e;
 });
-prefix("function", function () {
+prefix("function", function (parselet) {
     let n = {
         type: "FunctionNode",
+        line: parselet.line,
         id: "function",
         name: "",
         parameters: {
             type: "NodeList",
+            line: parselet.line,
             id: "parameters",
             children: []
         },
         body: {
             type: "NodeList",
+            line: parselet.line,
             id: "body",
             children: []
         }
@@ -875,9 +839,11 @@ prefix("function", function () {
     if (length(children) === 0 || children[length(children) - 1].id !== "return") {
         children = [...children, {
                 type: "StatementNode",
+                line: parselet.line,
                 id: "return",
                 value: {
                     type: "LiteralNode",
+                    line: parselet.line,
                     id: "undefined",
                     value: UNDEFINED
                 }
@@ -887,9 +853,10 @@ prefix("function", function () {
     node = advance("}");
     return n;
 });
-prefix("[", function () {
+prefix("[", function (parselet) {
     let a = {
         type: "NodeList",
+        line: parselet.line,
         id: "[",
         children: []
     };
@@ -900,6 +867,7 @@ prefix("[", function () {
                 let v = expression(0);
                 a.children = [...a.children, {
                         type: "UnaryNode",
+                        line: parselet.line,
                         id: "...",
                         value: v
                     }];
@@ -919,12 +887,13 @@ prefix("[", function () {
     node = advance("]");
     return {
         type: "UnaryNode",
+        line: parselet.line,
         id: "[",
         value: a
     };
 });
-prefix("{", function () {
-    let a = { type: "NodeList", children: [], id: '{' };
+prefix("{", function (parselet) {
+    let a = { type: "NodeList", children: [], id: '{', line: parselet.line };
     if (node.id !== "}") {
         while (true) {
             let n = node;
@@ -934,6 +903,7 @@ prefix("{", function () {
                 v = expression(0);
                 a.children = [...a.children, {
                         type: "UnaryNode",
+                        line: parselet.line,
                         id: "...",
                         value: v
                     }];
@@ -952,6 +922,7 @@ prefix("{", function () {
             v = expression(0);
             a.children = [...a.children, {
                     type: "BinaryNode",
+                    line: parselet.line,
                     assignment: false,
                     id: ":",
                     left: kn,
@@ -966,33 +937,37 @@ prefix("{", function () {
     node = advance("}");
     return {
         type: "UnaryNode",
+        line: parselet.line,
         id: "{",
         value: a
     };
 });
-stmt("{", function () {
+stmt("{", function (parselet) {
     let n = {
         type: "NodeList",
+        line: parselet.line,
         id: "{",
         children: statements()
     };
     node = advance("}");
     return {
         type: "StatementNode",
+        line: parselet.line,
         id: "{",
         value: n
     };
 });
-stmt("throw", function () {
+stmt("throw", function (parselet) {
     let n = {
         type: "StatementNode",
+        line: parselet.line,
         id: "throw",
         value: expression(0)
     };
     node = advance(';');
     return n;
 });
-stmt("let", function () {
+stmt("let", function (parselet) {
     let n = node.nud(node);
     if (n.type !== "Name") {
         throw Error("Expected a new variable name.");
@@ -1002,11 +977,13 @@ stmt("let", function () {
         node = advance(";");
         return {
             type: "BinaryNode",
+            line: parselet.line,
             assignment: true,
             id: "let",
             left: n,
             right: {
                 type: "LiteralNode",
+                line: parselet.line,
                 id: "undefined",
                 value: UNDEFINED
             }
@@ -1015,6 +992,7 @@ stmt("let", function () {
     node = advance("=");
     let assignment = {
         type: "BinaryNode",
+        line: parselet.line,
         assignment: true,
         id: "let",
         left: n,
@@ -1023,7 +1001,7 @@ stmt("let", function () {
     node = advance(";");
     return assignment;
 });
-stmt("if", function () {
+stmt("if", function (parselet) {
     node = advance("(");
     let first = expression(0);
     node = advance(")");
@@ -1041,8 +1019,10 @@ stmt("if", function () {
     else {
         third = {
             type: "StatementNode",
+            line: parselet.line,
             id: '{',
             value: {
+                line: parselet.line,
                 type: 'NodeList',
                 id: '{',
                 children: []
@@ -1051,13 +1031,14 @@ stmt("if", function () {
     }
     return {
         type: "TernaryNode",
+        line: parselet.line,
         id: "if",
         first: first,
         second: second,
         third: third
     };
 });
-stmt("try", function () {
+stmt("try", function (parselet) {
     let first = block();
     node = advance("catch");
     node = advance("(");
@@ -1066,17 +1047,19 @@ stmt("try", function () {
     let third = block();
     return {
         type: "TernaryNode",
+        line: parselet.line,
         id: "try",
         first: first,
         second: second,
         third: third
     };
 });
-stmt("return", function () {
+stmt("return", function (parselet) {
     let n;
     if (node.id !== ";") {
         n = {
             type: "StatementNode",
+            line: parselet.line,
             id: "return",
             value: expression(0)
         };
@@ -1085,9 +1068,11 @@ stmt("return", function () {
     else {
         n = {
             type: "StatementNode",
+            line: parselet.line,
             id: "return",
             value: {
                 type: "LiteralNode",
+                line: parselet.line,
                 id: "undefined",
                 value: UNDEFINED
             }
@@ -1099,46 +1084,52 @@ stmt("return", function () {
     }
     return n;
 });
-stmt("break", function () {
+stmt("break", function (parselet) {
     node = advance(";");
     if (node.id !== "}") {
         throw Error("Unreachable statement.");
     }
     return {
         type: "StatementNode",
+        line: parselet.line,
         id: "break",
         value: {
             type: "Name",
+            line: parselet.line,
             id: "break",
             value: "break"
         }
     };
 });
-stmt("continue", function () {
+stmt("continue", function (parselet) {
     node = advance(";");
     if (node.id !== "}") {
         throw Error("Unreachable statement.");
     }
     return {
         type: "StatementNode",
+        line: parselet.line,
         id: "continue",
         value: {
             type: "Name",
+            line: parselet.line,
             id: "continue",
             value: "continue"
         }
     };
 });
-stmt("while", function () {
+stmt("while", function (parselet) {
     node = advance("(");
     let left = expression(0);
     node = advance(")");
     let right = block();
     return {
         type: "StatementNode",
+        line: parselet.line,
         id: "while",
         value: {
             type: "BinaryNode",
+            line: parselet.line,
             id: "while",
             left: left,
             right: right,
@@ -1154,54 +1145,67 @@ let parse = function (tokenized) {
     node = advance("(end)");
     return s;
 };
-let LiteralStringInterplet = function (v) {
+let NONE = 0;
+let CONTINUE = 1;
+let BREAK = 2;
+let THROW = 3;
+let RETURN = 4;
+let unwinding = NONE;
+let unwindValue = null;
+let LiteralStringInterplet = function (v, line) {
     return {
+        line: line,
         value: v,
         interpret: function (self) {
             return self.value;
         }
     };
 };
-let LiteralNumberInterplet = function (v) {
+let LiteralNumberInterplet = function (v, line) {
     return {
+        line: line,
         value: v,
         interpret: function (self) {
             return self.value;
         }
     };
 };
-let LiteralBooleanInterplet = function (v) {
+let LiteralBooleanInterplet = function (v, line) {
     return {
+        line: line,
         value: v,
         interpret: function (self) {
             return self.value;
         }
     };
 };
-let LiteralNullInterplet = function () {
+let LiteralNullInterplet = function (line) {
     return {
+        line: line,
         interpret: function (self) {
             return null;
         }
     };
 };
-let LiteralUndefinedInterplet = function () {
+let LiteralUndefinedInterplet = function (line) {
     return {
+        line: line,
         interpret: function (self) {
             return undefined;
         }
     };
 };
-let LiteralArrayInterplet = function (v) {
+let LiteralArrayInterplet = function (v, line) {
     return {
+        line: line,
         expressions: v,
-        interpret: function (self, frame) {
+        interpret: function (self, scope) {
             let result = [];
             let i = 0;
             let l = length(self.expressions);
             while (i < l) {
                 let expr = self.expressions[i];
-                let value = expr.interpret(expr, frame);
+                let value = expr.interpret(expr, scope);
                 if (value !== null && typeof value === "object" && value.type === "spread") {
                     let spread = value.value;
                     if (spread.type === "array") {
@@ -1224,18 +1228,19 @@ let LiteralArrayInterplet = function (v) {
         }
     };
 };
-let LiteralObjectInterplet = function (keys, values) {
+let LiteralObjectInterplet = function (keys, values, line) {
     return {
+        line: line,
         keys: keys,
         values: values,
-        interpret: function (self, frame) {
+        interpret: function (self, scope) {
             let keys = [];
             let values = [];
             let i = 0;
             let l = length(self.keys);
             while (i < l) {
                 let key = self.keys[i];
-                let value = self.values[i].interpret(self.values[i], frame);
+                let value = self.values[i].interpret(self.values[i], scope);
                 if (typeof key !== "string") {
                     throw Error("Invalid object key");
                 }
@@ -1263,13 +1268,14 @@ let LiteralObjectInterplet = function (keys, values) {
         }
     };
 };
-let AssignmentInterplet = function (name, value) {
+let AssignmentInterplet = function (name, value, line) {
     return {
+        line: line,
         name: name,
         value: value,
-        interpret: function (self, frame) {
-            let v = self.value.interpret(self.value, frame);
-            let current = frame;
+        interpret: function (self, scope) {
+            let v = self.value.interpret(self.value, scope);
+            let current = scope;
             let index = -1;
             while (current !== null) {
                 index = lastIndexOf(current.locals, self.name);
@@ -1286,14 +1292,15 @@ let AssignmentInterplet = function (name, value) {
         }
     };
 };
-let ObjectAssignmentInterplet = function (target, name, value) {
+let ObjectAssignmentInterplet = function (target, name, value, line) {
     return {
+        line: line,
         target: target,
         name: name,
         value: value,
-        interpret: function (self, frame) {
-            let v = self.value.interpret(self.value, frame);
-            let target = self.target.interpret(self.target, frame);
+        interpret: function (self, scope) {
+            let v = self.value.interpret(self.value, scope);
+            let target = self.target.interpret(self.target, scope);
             if (target === null || typeof target !== "object" || target.type !== "object") {
                 throw Error("Can only assign to objects");
             }
@@ -1306,27 +1313,29 @@ let ObjectAssignmentInterplet = function (target, name, value) {
         }
     };
 };
-let LetInterplet = function (name, value) {
+let LetInterplet = function (name, value, line) {
     return {
+        line: line,
         name: name,
         value: value,
-        interpret: function (self, frame) {
-            let v = self.value.interpret(self.value, frame);
-            let exists = indexOf(frame.locals, self.name);
+        interpret: function (self, scope) {
+            let v = self.value.interpret(self.value, scope);
+            let exists = indexOf(scope.locals, self.name);
             if (exists >= 0) {
                 throw Error("Cannot redeclare let-scoped variable: " + self.name);
             }
-            frame.locals = [...frame.locals, self.name];
-            frame.values = [...frame.values, v];
+            scope.locals = [...scope.locals, self.name];
+            scope.values = [...scope.values, v];
             return v;
         }
     };
 };
-let NameInterplet = function (name) {
+let NameInterplet = function (name, line) {
     return {
+        line: line,
         name: name,
-        interpret: function (self, frame) {
-            let current = frame;
+        interpret: function (self, scope) {
+            let current = scope;
             while (current !== null) {
                 let index = lastIndexOf(current.locals, self.name);
                 if (index >= 0) {
@@ -1341,20 +1350,21 @@ let NameInterplet = function (name) {
     };
 };
 let operators = ["+", "-", "/", "*", "**", ">", ">=", "<", "<=", "&&", "||", "===", "!=="];
-let OperatorInterplet = function (operator, left, right) {
+let OperatorInterplet = function (operator, left, right, line) {
     return {
+        line: line,
         operator: operator,
         left: left,
         right: right,
-        interpret: function (self, frame) {
-            let left = self.left.interpret(self.left, frame);
+        interpret: function (self, scope) {
+            let left = self.left.interpret(self.left, scope);
             if (self.operator === "&&" || self.operator === "||") {
                 if (typeof left !== "boolean") {
                     throw Error("&& or || values must be boolean");
                 }
                 if (self.operator === "&&") {
                     if (left === true) {
-                        let r = self.right.interpret(self.right, frame);
+                        let r = self.right.interpret(self.right, scope);
                         if (typeof r !== "boolean") {
                             throw Error("&& or || values must be boolean");
                         }
@@ -1366,14 +1376,14 @@ let OperatorInterplet = function (operator, left, right) {
                     if (left === true) {
                         return true;
                     }
-                    let r = self.right.interpret(self.right, frame);
+                    let r = self.right.interpret(self.right, scope);
                     if (typeof r !== "boolean") {
                         throw Error("&& or || values must be boolean");
                     }
                     return r;
                 }
             }
-            let right = self.right.interpret(self.right, frame);
+            let right = self.right.interpret(self.right, scope);
             if (self.operator === "===") {
                 return left === right;
             }
@@ -1418,8 +1428,9 @@ let OperatorInterplet = function (operator, left, right) {
         }
     };
 };
-let FunctionInterplet = function (parameters, body) {
+let FunctionInterplet = function (parameters, body, line) {
     return {
+        line: line,
         parameters: parameters,
         body: body,
         interpret: function (self) {
@@ -1431,24 +1442,25 @@ let FunctionInterplet = function (parameters, body) {
         }
     };
 };
-let ReturnInterplet = function (value) {
+let ReturnInterplet = function (value, line) {
     return {
+        line: line,
         value: value,
-        interpret: function (self, frame) {
-            let ret = self.value.interpret(self.value, frame);
-            throw {
-                type: 'return',
-                value: ret
-            };
+        interpret: function (self, scope) {
+            let ret = self.value.interpret(self.value, scope);
+            unwindValue = ret;
+            unwinding = RETURN;
+            return undefined;
         }
     };
 };
-let CallInterplet = function (func, args) {
+let CallInterplet = function (func, args, line) {
     return {
+        line: line,
         func: func,
         args: args,
-        interpret: function (self, frame) {
-            let f = self.func.interpret(self.func, frame);
+        interpret: function (self, scope) {
+            let f = self.func.interpret(self.func, scope);
             if (f === null || typeof f !== "object" || f.type !== "function" && f.type !== "nativefunction") {
                 throw Error("Attempt to call non-function");
             }
@@ -1463,7 +1475,7 @@ let CallInterplet = function (func, args) {
                 }
                 let a = self.args[i];
                 locals = [...locals, f.parameters[i]];
-                values = [...values, a.interpret(a, frame)];
+                values = [...values, a.interpret(a, scope)];
                 i = i + 1;
             }
             if (f.type === "nativefunction") {
@@ -1472,20 +1484,23 @@ let CallInterplet = function (func, args) {
             let stack = {
                 locals: locals,
                 values: values,
-                parent: frame
+                parent: scope
             };
             i = 0;
             l = length(f.body);
             while (i < l) {
                 let s = f.body[i];
-                try {
-                    s.interpret(s, stack);
-                }
-                catch (err) {
-                    if (typeof err === "object" && err.type === "return") {
-                        return err.value;
+                s.interpret(s, stack);
+                if (unwinding !== NONE) {
+                    if (unwinding === RETURN) {
+                        let ret = unwindValue;
+                        unwinding = NONE;
+                        unwindValue = null;
+                        return ret;
                     }
-                    throw err;
+                    else {
+                        return undefined;
+                    }
                 }
                 i = i + 1;
             }
@@ -1493,13 +1508,14 @@ let CallInterplet = function (func, args) {
         }
     };
 };
-let MethodCallInterplet = function (obj, func, args) {
+let MethodCallInterplet = function (obj, func, args, line) {
     return {
+        line: line,
         obj: obj,
         func: func,
         args: args,
-        interpret: function (self, frame) {
-            let obj = self.obj.interpret(self.obj, frame);
+        interpret: function (self, scope) {
+            let obj = self.obj.interpret(self.obj, scope);
             if (obj === null || typeof obj !== "object" || obj.type !== "object") {
                 throw Error("Method calls are only allowed on objects");
             }
@@ -1518,26 +1534,29 @@ let MethodCallInterplet = function (obj, func, args) {
                 }
                 let a = self.args[i];
                 locals = [...locals, f.parameters[i]];
-                values = [...values, a.interpret(a, frame)];
+                values = [...values, a.interpret(a, scope)];
                 i = i + 1;
             }
             let stack = {
                 locals: locals,
                 values: values,
-                parent: frame
+                parent: scope
             };
             i = 0;
             l = length(f.body);
             while (i < l) {
                 let s = f.body[i];
-                try {
-                    s.interpret(s, stack);
-                }
-                catch (err) {
-                    if (typeof err === "object" && err.type === "return") {
-                        return err.value;
+                s.interpret(s, stack);
+                if (unwinding !== NONE) {
+                    if (unwinding === RETURN) {
+                        let ret = unwindValue;
+                        unwinding = NONE;
+                        unwindValue = null;
+                        return ret;
                     }
-                    throw err;
+                    else {
+                        return undefined;
+                    }
                 }
                 i = i + 1;
             }
@@ -1545,17 +1564,18 @@ let MethodCallInterplet = function (obj, func, args) {
         }
     };
 };
-let IndexInterplet = function (target, index) {
+let IndexInterplet = function (target, index, line) {
     return {
+        line: line,
         target: target,
         index: index,
-        interpret: function (self, frame) {
-            let target = self.target.interpret(self.target, frame);
-            let index = self.index.interpret(self.index, frame);
+        interpret: function (self, scope) {
+            let target = self.target.interpret(self.target, scope);
+            let index = self.index.interpret(self.index, scope);
             if (target !== null && typeof target === "object") {
                 if (target.type === "array" && typeof index === "number") {
                     if (index >= length(target.values)) {
-                        throw Error("Out of bounds index");
+                        return undefined;
                     }
                     else {
                         return target.values[index];
@@ -1576,7 +1596,7 @@ let IndexInterplet = function (target, index) {
             }
             else if (typeof target === "string" && typeof index === "number") {
                 if (index >= length(target)) {
-                    throw Error("Out of bounds index");
+                    return undefined;
                 }
                 else {
                     return target[index];
@@ -1585,12 +1605,13 @@ let IndexInterplet = function (target, index) {
         }
     };
 };
-let DotInterplet = function (target, key) {
+let DotInterplet = function (target, key, line) {
     return {
+        line: line,
         target: target,
         key: key,
-        interpret: function (self, frame) {
-            let target = self.target.interpret(self.target, frame);
+        interpret: function (self, scope) {
+            let target = self.target.interpret(self.target, scope);
             if (target === null || typeof target !== "object" || target.type !== "object") {
                 throw Error("Dot syntax can only be used on objects");
             }
@@ -1601,115 +1622,128 @@ let DotInterplet = function (target, key) {
         }
     };
 };
-let WhileInterplet = function (condition, block) {
+let WhileInterplet = function (condition, block, line) {
     return {
+        line: line,
         condition: condition,
         block: block,
-        interpret: function (self, frame) {
-            while (true) {
+        interpret: function (self, scope) {
+            let broken = false;
+            while (broken === false) {
                 let stack = {
                     locals: [],
                     values: [],
-                    parent: frame
+                    parent: scope
                 };
-                let condition = self.condition.interpret(self.condition, frame);
+                let condition = self.condition.interpret(self.condition, scope);
                 if (typeof condition !== "boolean") {
                     throw Error("Invalid while condition");
                 }
                 if (condition === false) {
                     break;
                 }
-                try {
-                    let i = 0;
-                    let l = length(self.block);
-                    while (i < l) {
-                        self.block[i].interpret(self.block[i], stack);
-                        i = i + 1;
+                let i = 0;
+                let l = length(self.block);
+                while (i < l) {
+                    self.block[i].interpret(self.block[i], stack);
+                    if (unwinding !== NONE) {
+                        if (unwinding === BREAK) {
+                            unwinding = NONE;
+                            broken = true;
+                            i = l;
+                        }
+                        else if (unwinding === CONTINUE) {
+                            unwinding = NONE;
+                            i = l;
+                        }
+                        else {
+                            return undefined;
+                        }
                     }
-                }
-                catch (e) {
-                    if (e === "break") {
-                        break;
-                    }
-                    if (e === "continue") {
-                        continue;
-                    }
-                    throw e;
+                    i = i + 1;
                 }
             }
             return undefined;
         }
     };
 };
-let BreakInterplet = function () {
+let BreakInterplet = function (line) {
     return {
-        interpret: function (self, frame) {
-            throw "break";
+        line: line,
+        interpret: function (self, scope) {
+            unwinding = BREAK;
+            return undefined;
         }
     };
 };
-let ContinueInterplet = function () {
+let ContinueInterplet = function (line) {
     return {
-        interpret: function (self, frame) {
-            throw "continue";
+        line: line,
+        interpret: function (self, scope) {
+            unwinding = CONTINUE;
+            return undefined;
         }
     };
 };
-let TryInterplet = function (block, name, handler) {
+let TryInterplet = function (block, name, handler, line) {
     return {
+        line: line,
         block: block,
         name: name,
         handler: handler,
-        interpret: function (self, frame) {
+        interpret: function (self, scope) {
             let i = 0;
             let l = 0;
-            try {
-                let block = self.block;
-                l = length(block);
-                let stack = {
-                    locals: [],
-                    values: [],
-                    parent: frame
-                };
-                while (i < l) {
-                    block[i].interpret(block[i], stack);
-                    i = i + 1;
+            let block = self.block;
+            l = length(block);
+            let stack = {
+                locals: [],
+                values: [],
+                parent: scope
+            };
+            while (i < l) {
+                block[i].interpret(block[i], stack);
+                if (unwinding !== NONE) {
+                    if (unwinding === THROW) {
+                        unwinding = NONE;
+                        i = l;
+                        let stack = scope;
+                        let handler = self.handler;
+                        let ii = 0;
+                        let ll = length(handler);
+                        while (ii < ll) {
+                            handler[ii].interpret(handler[ii], stack);
+                            ii = ii + 1;
+                        }
+                    }
+                    else {
+                        return undefined;
+                    }
                 }
-                return undefined;
+                i = i + 1;
             }
-            catch (err) {
-                let stack = {
-                    locals: [self.name],
-                    values: [err],
-                    parent: frame
-                };
-                let handler = self.handler;
-                i = 0;
-                l = length(handler);
-                while (i < l) {
-                    handler[i].interpret(handler[i], stack);
-                    i = i + 1;
-                }
-                return undefined;
-            }
+            return undefined;
         }
     };
 };
-let ThrowInterplet = function (err) {
+let ThrowInterplet = function (err, line) {
     return {
+        line: line,
         err: err,
-        interpret: function (self, frame) {
-            throw self.err.interpret(self.err, frame);
+        interpret: function (self, scope) {
+            unwinding = THROW;
+            return undefined;
         }
     };
 };
-let IfInterplet = function (condition, ifTrue, ifFalse) {
+let IfInterplet = function (condition, ifTrue, ifFalse, line) {
     return {
+        line: line,
         condition: condition,
         ifTrue: ifTrue,
         ifFalse: ifFalse,
-        interpret: function (self, frame) {
-            let condition = self.condition.interpret(self.condition, frame);
+        interpret: function (self, scope) {
+            let condition = self.condition.interpret(self.condition, scope);
             if (typeof condition !== "boolean") {
                 throw Error("Invalid if condition: must be boolean");
             }
@@ -1722,24 +1756,28 @@ let IfInterplet = function (condition, ifTrue, ifFalse) {
             let stack = {
                 locals: [],
                 values: [],
-                parent: frame
+                parent: scope
             };
             while (i < l) {
                 let n = block[i];
                 n.interpret(n, stack);
+                if (unwinding !== NONE) {
+                    i = l;
+                }
                 i = i + 1;
             }
             return undefined;
         }
     };
 };
-let TernaryIfInterplet = function (condition, ifTrue, ifFalse) {
+let TernaryIfInterplet = function (condition, ifTrue, ifFalse, line) {
     return {
+        line: line,
         condition: condition,
         ifTrue: ifTrue,
         ifFalse: ifFalse,
-        interpret: function (self, frame) {
-            let condition = self.condition.interpret(self.condition, frame);
+        interpret: function (self, scope) {
+            let condition = self.condition.interpret(self.condition, scope);
             if (typeof condition !== "boolean") {
                 throw Error("Invalid if condition: must be boolean");
             }
@@ -1747,15 +1785,16 @@ let TernaryIfInterplet = function (condition, ifTrue, ifFalse) {
             if (condition) {
                 expr = self.ifTrue;
             }
-            return expr.interpret(expr, frame);
+            return expr.interpret(expr, scope);
         }
     };
 };
-let NegativeInterplet = function (value) {
+let NegativeInterplet = function (value, line) {
     return {
+        line: line,
         value: value,
-        interpret: function (self, frame) {
-            let result = self.value.interpret(self.value, frame);
+        interpret: function (self, scope) {
+            let result = self.value.interpret(self.value, scope);
             if (typeof result !== "number") {
                 throw Error("Invalid negative value: must be a number");
             }
@@ -1763,30 +1802,27 @@ let NegativeInterplet = function (value) {
         }
     };
 };
-let TypeofInterplet = function (value) {
+let TypeofInterplet = function (value, line) {
     return {
+        line: line,
         value: value,
-        interpret: function (self, frame) {
-            try {
-                let result = self.value.interpret(self.value, frame);
-                if (result !== null && typeof result === "object" && result.type === "function") {
-                    return "function";
-                }
-                else {
-                    return typeof result;
-                }
+        interpret: function (self, scope) {
+            let result = self.value.interpret(self.value, scope);
+            if (result !== null && typeof result === "object" && result.type === "function") {
+                return "function";
             }
-            catch (err) {
-                return typeof undefined;
+            else {
+                return typeof result;
             }
         }
     };
 };
-let SpreadInterplet = function (value) {
+let SpreadInterplet = function (value, line) {
     return {
+        line: line,
         value: value,
-        interpret: function (self, frame) {
-            let target = self.value.interpret(self.value, frame);
+        interpret: function (self, scope) {
+            let target = self.value.interpret(self.value, scope);
             if (target === null || typeof target !== "object" || (target.type !== "array" && target.type !== "object")) {
                 throw Error("Can only spread objects and arrays");
             }
@@ -1801,19 +1837,19 @@ let createInterp = function (parsed) {
     if (parsed.type === "LiteralNode") {
         let value = parsed.value;
         if (value.type === "Boolean") {
-            return LiteralBooleanInterplet(value.value);
+            return LiteralBooleanInterplet(value.value, parsed.line);
         }
         else if (value.type === "Null") {
-            return LiteralNullInterplet();
+            return LiteralNullInterplet(parsed.line);
         }
         else if (value.type === "Number") {
-            return LiteralNumberInterplet(value.value);
+            return LiteralNumberInterplet(value.value, parsed.line);
         }
         else if (value.type === "String") {
-            return LiteralStringInterplet(value.value);
+            return LiteralStringInterplet(value.value, parsed.line);
         }
         else if (value.type === "Undefined") {
-            return LiteralUndefinedInterplet();
+            return LiteralUndefinedInterplet(parsed.line);
         }
     }
     else if (parsed.type === "BinaryNode") {
@@ -1829,9 +1865,9 @@ let createInterp = function (parsed) {
                     throw Error("Invalid assignment");
                 }
                 let target = left.left;
-                return ObjectAssignmentInterplet(createInterp(target), name.value, createInterp(right));
+                return ObjectAssignmentInterplet(createInterp(target), name.value, createInterp(right), parsed.line);
             }
-            return AssignmentInterplet(left.value, createInterp(right));
+            return AssignmentInterplet(left.value, createInterp(right), parsed.line);
         }
         else if (parsed.id === "let" && parsed.assignment) {
             let left = parsed.left;
@@ -1839,12 +1875,12 @@ let createInterp = function (parsed) {
             if (left.type !== "Name") {
                 throw Error("Invalid assignment name");
             }
-            return LetInterplet(left.value, right);
+            return LetInterplet(left.value, right, parsed.line);
         }
         else if (indexOf(operators, parsed.id) > -1) {
             let left = createInterp(parsed.left);
             let right = createInterp(parsed.right);
-            return OperatorInterplet(parsed.id, left, right);
+            return OperatorInterplet(parsed.id, left, right, parsed.line);
         }
         else if (parsed.id === "(") {
             let left = createInterp(parsed.left);
@@ -1860,12 +1896,12 @@ let createInterp = function (parsed) {
                 args = [...args, a];
                 i = i + 1;
             }
-            return CallInterplet(left, args);
+            return CallInterplet(left, args, parsed.line);
         }
         else if (parsed.id === '[') {
             let left = createInterp(parsed.left);
             let right = createInterp(parsed.right);
-            return IndexInterplet(left, right);
+            return IndexInterplet(left, right, parsed.line);
         }
         else if (parsed.id === ".") {
             let left = createInterp(parsed.left);
@@ -1873,11 +1909,11 @@ let createInterp = function (parsed) {
             if (right.type !== "Name") {
                 throw Error("Invalid dot access");
             }
-            return DotInterplet(left, right.value);
+            return DotInterplet(left, right.value, parsed.line);
         }
     }
     else if (parsed.type === "Name") {
-        return NameInterplet(parsed.value);
+        return NameInterplet(parsed.value, parsed.line);
     }
     else if (parsed.type === "UnaryNode") {
         if (parsed.id === "{") {
@@ -1909,7 +1945,7 @@ let createInterp = function (parsed) {
                 values = [...values, createInterp(node.right)];
                 i = i + 1;
             }
-            return LiteralObjectInterplet(keys, values);
+            return LiteralObjectInterplet(keys, values, parsed.line);
         }
         else if (parsed.id === "[") {
             let values = [];
@@ -1925,19 +1961,19 @@ let createInterp = function (parsed) {
                 values = [...values, createInterp(node)];
                 i = i + 1;
             }
-            return LiteralArrayInterplet(values);
+            return LiteralArrayInterplet(values, parsed.line);
         }
         else if (parsed.id === "-") {
             let value = createInterp(parsed.value);
-            return NegativeInterplet(value);
+            return NegativeInterplet(value, parsed.line);
         }
         else if (parsed.id === "typeof") {
             let value = createInterp(parsed.value);
-            return TypeofInterplet(value);
+            return TypeofInterplet(value, parsed.line);
         }
         else if (parsed.id === "...") {
             let value = createInterp(parsed.value);
-            return SpreadInterplet(value);
+            return SpreadInterplet(value, parsed.line);
         }
     }
     else if (parsed.type === "FunctionNode") {
@@ -1961,11 +1997,11 @@ let createInterp = function (parsed) {
             body = [...body, interp];
             i = i + 1;
         }
-        return FunctionInterplet(parameters, body);
+        return FunctionInterplet(parameters, body, parsed.line);
     }
     else if (parsed.type === "StatementNode") {
         if (parsed.id === "return") {
-            return ReturnInterplet(createInterp(parsed.value));
+            return ReturnInterplet(createInterp(parsed.value), parsed.line);
         }
         else if (parsed.id === "while") {
             let value = parsed.value;
@@ -1988,17 +2024,17 @@ let createInterp = function (parsed) {
                 block = [...block, createInterp(body.children[i])];
                 i = i + 1;
             }
-            return WhileInterplet(left, block);
+            return WhileInterplet(left, block, parsed.line);
         }
         else if (parsed.id === "break") {
-            return BreakInterplet();
+            return BreakInterplet(parsed.line);
         }
         else if (parsed.id === "continue") {
-            return ContinueInterplet();
+            return ContinueInterplet(parsed.line);
         }
         else if (parsed.id === "throw") {
             let err = createInterp(parsed.value);
-            return ThrowInterplet(err);
+            return ThrowInterplet(err, parsed.line);
         }
     }
     else if (parsed.type === "TernaryNode") {
@@ -2037,7 +2073,7 @@ let createInterp = function (parsed) {
                 guard = [...guard, createInterp(third.children[i])];
                 i = i + 1;
             }
-            return TryInterplet(block, second.value, guard);
+            return TryInterplet(block, second.value, guard, parsed.line);
         }
         else if (parsed.id === "if") {
             let expr = createInterp(parsed.first);
@@ -2058,7 +2094,7 @@ let createInterp = function (parsed) {
             }
             let ifFalse = parsed.third;
             if (ifFalse.id === "if") {
-                return IfInterplet(expr, trueBlock, [createInterp(ifFalse)]);
+                return IfInterplet(expr, trueBlock, [createInterp(ifFalse)], parsed.line);
             }
             if (ifFalse.type !== "StatementNode") {
                 throw Error("Invalid if false block");
@@ -2074,7 +2110,7 @@ let createInterp = function (parsed) {
                 falseBlock = [...falseBlock, createInterp(ifFalse.children[i])];
                 i = i + 1;
             }
-            return IfInterplet(expr, trueBlock, falseBlock);
+            return IfInterplet(expr, trueBlock, falseBlock, parsed.line);
         }
         else if (parsed.id === "(") {
             let first = createInterp(parsed.first);
@@ -2094,13 +2130,13 @@ let createInterp = function (parsed) {
                 args = [...args, a];
                 i = i + 1;
             }
-            return MethodCallInterplet(first, second.value, args);
+            return MethodCallInterplet(first, second.value, args, parsed.line);
         }
         else if (parsed.id === "?") {
             let condition = createInterp(parsed.first);
             let ifTrue = createInterp(parsed.second);
             let ifFalse = createInterp(parsed.third);
-            return TernaryIfInterplet(condition, ifTrue, ifFalse);
+            return TernaryIfInterplet(condition, ifTrue, ifFalse, parsed.line);
         }
     }
     throw Error("failed");
@@ -2113,7 +2149,7 @@ let main = function (rFS, log, native) {
     let tokens = tokenize(source, prefix, suffix, log);
     log('parsing');
     let tree = parse(tokens);
-    let frame = {
+    let scope = {
         locals: ['Infinity'],
         values: [Infinity],
         parent: null
@@ -2124,12 +2160,12 @@ let main = function (rFS, log, native) {
     while (i < l) {
         let node = tree[i];
         let interp = createInterp(node);
-        interp.interpret(interp, frame);
+        interp.interpret(interp, scope);
         i = i + 1;
     }
     if (native) {
         log('starting');
-        let meta = frame.values[indexOf(frame.locals, 'main')];
+        let meta = scope.values[indexOf(scope.locals, 'main')];
         if (meta === null || typeof meta !== "object" || meta.type !== "function") {
             log("Invalid main function");
             return;
@@ -2151,7 +2187,7 @@ let main = function (rFS, log, native) {
         let stack = {
             locals: ['rFS', 'log', 'native'],
             values: [iread, ilog, false],
-            parent: frame
+            parent: scope
         };
         i = 0;
         l = length(meta.body);

@@ -52,11 +52,6 @@ export interface Scope {
   locals: string[];
   values: Value[];
   parent: Scope | null;
-  frame: Frame;
-}
-
-export interface Frame {
-  parent: Frame | null;
 }
 
 let NONE = 0 as const;
@@ -76,6 +71,7 @@ let unwinding: UnwindType = NONE;
 let unwindValue: Value = null;
 
 interface AstInterplet {
+  line: number;
   interpret(self: AstInterplet, scope: Scope): Value;
 }
 
@@ -84,8 +80,9 @@ interface LiteralStringInterplet extends AstInterplet {
   interpret(self: LiteralStringInterplet, scope: Scope): Value;
 }
 
-let LiteralStringInterplet = function(v: string): LiteralStringInterplet {
+let LiteralStringInterplet = function(v: string, line: number): LiteralStringInterplet {
   return {
+    line: line,
     value: v,
     interpret: function(self) {
       return self.value;
@@ -98,8 +95,9 @@ interface LiteralNumberInterplet extends AstInterplet {
   interpret(self: LiteralNumberInterplet, scope: Scope): Value;
 }
 
-let LiteralNumberInterplet = function(v: number): LiteralNumberInterplet {
+let LiteralNumberInterplet = function(v: number, line: number): LiteralNumberInterplet {
   return {
+    line: line,
     value: v,
     interpret: function(self) {
       return self.value;
@@ -112,8 +110,9 @@ interface LiteralBooleanInterplet extends AstInterplet {
   interpret(self: LiteralBooleanInterplet, scope: Scope): Value;
 }
 
-let LiteralBooleanInterplet = function(v: boolean): LiteralBooleanInterplet {
+let LiteralBooleanInterplet = function(v: boolean, line: number): LiteralBooleanInterplet {
   return {
+    line: line,
     value: v,
     interpret: function(self) {
       return self.value;
@@ -125,8 +124,9 @@ interface LiteralNullInterplet extends AstInterplet {
   interpret(self: LiteralNullInterplet, scope: Scope): Value;
 }
 
-let LiteralNullInterplet = function(): LiteralNullInterplet {
+let LiteralNullInterplet = function(line: number): LiteralNullInterplet {
   return {
+    line: line,
     interpret: function(self) {
       return null;
     }
@@ -137,8 +137,9 @@ interface LiteralUndefinedInterplet extends AstInterplet {
   interpret(self: LiteralUndefinedInterplet, scope: Scope): Value;
 }
 
-let LiteralUndefinedInterplet = function(): LiteralUndefinedInterplet {
+let LiteralUndefinedInterplet = function(line: number): LiteralUndefinedInterplet {
   return {
+    line: line,
     interpret: function(self) {
       return undefined;
     }
@@ -150,8 +151,9 @@ interface LiteralArrayInterplet extends AstInterplet {
   interpret(self: LiteralArrayInterplet, scope: Scope): Value;
 }
 
-let LiteralArrayInterplet = function(v: Array<AstInterplet>): LiteralArrayInterplet {
+let LiteralArrayInterplet = function(v: Array<AstInterplet>, line: number): LiteralArrayInterplet {
   return {
+    line: line,
     expressions: v,
     interpret: function(self, scope) {
       let result: Value[] = [];
@@ -187,8 +189,9 @@ interface LiteralObjectInterplet extends AstInterplet {
   interpret(self: LiteralObjectInterplet, scope: Scope): Value;
 }
 
-let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInterplet>): LiteralObjectInterplet {
+let LiteralObjectInterplet = function(keys: Array<string>, values: Array<AstInterplet>, line: number): LiteralObjectInterplet {
   return {
+    line: line,
     keys: keys,
     values: values,
     interpret: function(self, scope) {
@@ -231,8 +234,9 @@ interface AssignmentInterplet extends AstInterplet {
   interpret(self: AssignmentInterplet, scope: Scope): Value;
 }
 
-let AssignmentInterplet = function(name: string, value: AstInterplet): AssignmentInterplet {
+let AssignmentInterplet = function(name: string, value: AstInterplet, line: number): AssignmentInterplet {
   return {
+    line: line,
     name: name,
     value: value,
     interpret: function(self, scope) {
@@ -267,8 +271,9 @@ interface ObjectAssignmentInterplet extends AstInterplet {
   interpret(self: ObjectAssignmentInterplet, scope: Scope): Value;
 }
 
-let ObjectAssignmentInterplet = function(target: AstInterplet, name: string, value: AstInterplet): ObjectAssignmentInterplet {
+let ObjectAssignmentInterplet = function(target: AstInterplet, name: string, value: AstInterplet, line: number): ObjectAssignmentInterplet {
   return {
+    line: line,
     target: target,
     name: name,
     value: value,
@@ -297,8 +302,9 @@ interface LetInterplet extends AstInterplet {
   interpret(self: LetInterplet, scope: Scope): Value;
 }
 
-let LetInterplet = function(name: string, value: AstInterplet): LetInterplet {
+let LetInterplet = function(name: string, value: AstInterplet, line: number): LetInterplet {
   return {
+    line: line,
     name: name,
     value: value,
     interpret: function(self, scope) {
@@ -322,8 +328,9 @@ interface NameInterplet extends AstInterplet {
   interpret(self: NameInterplet, scope: Scope): Value;
 }
 
-let NameInterplet = function(name: string): NameInterplet {
+let NameInterplet = function(name: string, line: number): NameInterplet {
   return {
+    line: line,
     name: name,
     interpret: function(self, scope) {
       let current = scope;
@@ -354,8 +361,9 @@ interface OperatorInterplet extends AstInterplet {
   interpret(self: OperatorInterplet, scope: Scope): Value;
 }
 
-let OperatorInterplet = function(operator: string, left: AstInterplet, right: AstInterplet): OperatorInterplet {
+let OperatorInterplet = function(operator: string, left: AstInterplet, right: AstInterplet, line: number): OperatorInterplet {
   return {
+    line: line,
     operator: operator,
     left: left,
     right: right,
@@ -433,8 +441,9 @@ interface FunctionInterplet extends AstInterplet {
   interpret(self: FunctionInterplet, scope: Scope): Value;
 }
 
-let FunctionInterplet = function(parameters: string[], body: AstInterplet[]): FunctionInterplet {
+let FunctionInterplet = function(parameters: string[], body: AstInterplet[], line: number): FunctionInterplet {
   return {
+    line: line,
     parameters: parameters,
     body: body,
     interpret: function(self): FunctionValue {
@@ -452,8 +461,9 @@ interface ReturnInterplet extends AstInterplet {
   interpret(self: ReturnInterplet, scope: Scope): Value;
 }
 
-let ReturnInterplet = function(value: AstInterplet): ReturnInterplet {
+let ReturnInterplet = function(value: AstInterplet, line: number): ReturnInterplet {
   return {
+    line: line,
     value: value,
     interpret: function(self, scope): Value {
       let ret = self.value.interpret(self.value, scope);
@@ -470,8 +480,9 @@ interface CallInterplet extends AstInterplet {
   interpret(self: CallInterplet, scope: Scope): Value;
 }
 
-let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInterplet {
+let CallInterplet = function(func: AstInterplet, args: AstInterplet[], line: number): CallInterplet {
   return {
+    line: line,
     func: func,
     args: args,
     interpret: function(self, scope): Value {
@@ -501,14 +512,9 @@ let CallInterplet = function(func: AstInterplet, args: AstInterplet[]): CallInte
         return f.body(values[0]);
       }
 
-      let frame: Frame = {
-        parent: scope.frame
-      }
-
       let stack: Scope = {
         locals: locals,
         values: values,
-        frame: frame,
         parent: scope
       }
 
@@ -544,8 +550,9 @@ interface MethodCallInterplet extends AstInterplet {
   interpret(self: MethodCallInterplet, scope: Scope): Value;
 }
 
-let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInterplet[]): MethodCallInterplet {
+let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInterplet[], line: number): MethodCallInterplet {
   return {
+    line: line,
     obj: obj,
     func: func,
     args: args,
@@ -578,15 +585,10 @@ let MethodCallInterplet = function(obj: AstInterplet, func: string, args: AstInt
         i = i + 1;
       }
 
-      let frame: Frame = {
-        parent: scope.frame
-      }
-
       let stack: Scope = {
         locals: locals,
         values: values,
-        parent: scope,
-        frame: frame
+        parent: scope
       }
 
       i = 0;
@@ -621,8 +623,9 @@ interface IndexInterplet extends AstInterplet {
   interpret(self: IndexInterplet, scope: Scope): Value;
 }
 
-let IndexInterplet = function(target: AstInterplet, index: AstInterplet): IndexInterplet {
+let IndexInterplet = function(target: AstInterplet, index: AstInterplet, line: number): IndexInterplet {
   return {
+    line: line,
     target: target,
     index: index,
     interpret: function(self, scope): Value {
@@ -664,8 +667,9 @@ interface DotInterplet extends AstInterplet {
   interpret(self: DotInterplet, scope: Scope): Value;
 }
 
-let DotInterplet = function(target: AstInterplet, key: string): DotInterplet {
+let DotInterplet = function(target: AstInterplet, key: string, line: number): DotInterplet {
   return {
+    line: line,
     target: target,
     key: key,
     interpret: function(self, scope): Value {
@@ -690,8 +694,9 @@ interface WhileInterplet extends AstInterplet {
   interpret(self: WhileInterplet, scope: Scope): Value;
 }
 
-let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): WhileInterplet {
+let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[], line: number): WhileInterplet {
   return {
+    line: line,
     condition: condition,
     block: block,
     interpret: function(self, scope): Value {
@@ -700,8 +705,7 @@ let WhileInterplet = function(condition: AstInterplet, block: AstInterplet[]): W
         let stack: Scope = {
           locals: [],
           values: [],
-          parent: scope,
-          frame: scope.frame
+          parent: scope
         };
 
         let condition = self.condition.interpret(self.condition, scope);
@@ -745,8 +749,9 @@ interface BreakInterplet extends AstInterplet {
   interpret(self: BreakInterplet, scope: Scope): Value;
 }
 
-let BreakInterplet = function(): BreakInterplet {
+let BreakInterplet = function(line: number): BreakInterplet {
   return {
+    line: line,
     interpret: function(self, scope): Value {
       unwinding = BREAK;
       return undefined;
@@ -758,8 +763,9 @@ interface ContinueInterplet extends AstInterplet {
   interpret(self: ContinueInterplet, scope: Scope): Value;
 }
 
-let ContinueInterplet = function(): ContinueInterplet {
+let ContinueInterplet = function(line: number): ContinueInterplet {
   return {
+    line: line,
     interpret: function(self, scope): Value {
       unwinding = CONTINUE;
       return undefined;
@@ -774,8 +780,9 @@ interface TryInterplet extends AstInterplet {
   interpret(self: TryInterplet, scope: Scope): Value;
 }
 
-let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInterplet[]): TryInterplet {
+let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInterplet[], line: number): TryInterplet {
   return {
+    line: line,
     block: block,
     name: name,
     handler: handler,
@@ -789,8 +796,7 @@ let TryInterplet = function(block: AstInterplet[], name: string, handler: AstInt
       let stack: Scope = {
         locals: [],
         values: [],
-        parent: scope,
-        frame: scope.frame
+        parent: scope
       }
 
       while (i < l) {
@@ -828,8 +834,9 @@ interface ThrowInterplet extends AstInterplet {
   interpret(self: ThrowInterplet, scope: Scope): Value;
 }
 
-let ThrowInterplet = function(err: AstInterplet): ThrowInterplet {
+let ThrowInterplet = function(err: AstInterplet, line: number): ThrowInterplet {
   return {
+    line: line,
     err: err,
     interpret: function(self, scope): Value {
       unwinding = THROW;
@@ -845,8 +852,9 @@ interface IfInterplet extends AstInterplet {
   interpret(self: IfInterplet, scope: Scope): Value;
 }
 
-let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFalse: AstInterplet[]): IfInterplet {
+let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFalse: AstInterplet[], line: number): IfInterplet {
   return {
+    line: line,
     condition: condition,
     ifTrue: ifTrue,
     ifFalse: ifFalse,
@@ -864,8 +872,7 @@ let IfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet[], ifFa
       let stack: Scope = {
         locals: [],
         values: [],
-        parent: scope,
-        frame: scope.frame
+        parent: scope
       }
       while (i < l) {
         let n = block[i];
@@ -889,8 +896,9 @@ interface TernaryIfInterplet extends AstInterplet {
   interpret(self: TernaryIfInterplet, scope: Scope): Value;
 }
 
-let TernaryIfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet, ifFalse: AstInterplet): TernaryIfInterplet {
+let TernaryIfInterplet = function(condition: AstInterplet, ifTrue: AstInterplet, ifFalse: AstInterplet, line: number): TernaryIfInterplet {
   return {
+    line: line,
     condition: condition,
     ifTrue: ifTrue,
     ifFalse: ifFalse,
@@ -913,8 +921,9 @@ interface NegativeInterplet extends AstInterplet {
   interpret(self: NegativeInterplet, scope: Scope): Value;
 }
 
-let NegativeInterplet = function(value: AstInterplet): NegativeInterplet {
+let NegativeInterplet = function(value: AstInterplet, line: number): NegativeInterplet {
   return {
+    line: line,
     value: value,
     interpret: function(self, scope): Value {
       let result = self.value.interpret(self.value, scope);
@@ -931,8 +940,9 @@ interface TypeofInterplet extends AstInterplet {
   interpret(self: TypeofInterplet, scope: Scope): Value;
 }
 
-let TypeofInterplet = function(value: AstInterplet): TypeofInterplet {
+let TypeofInterplet = function(value: AstInterplet, line: number): TypeofInterplet {
   return {
+    line: line,
     value: value,
     interpret: function(self, scope): Value {
       let result = self.value.interpret(self.value, scope);
@@ -950,8 +960,9 @@ interface SpreadInterplet extends AstInterplet {
   interpret(self: SpreadInterplet, scope: Scope): Value;
 }
 
-let SpreadInterplet = function(value: AstInterplet): SpreadInterplet {
+let SpreadInterplet = function(value: AstInterplet, line: number): SpreadInterplet {
   return {
+    line: line,
     value: value,
     interpret: function(self, scope): Value {
       let target = self.value.interpret(self.value, scope);
@@ -971,15 +982,15 @@ export let createInterp = function(parsed: Node): AstInterplet {
     let value = parsed.value;
 
     if (value.type === "Boolean") {
-      return LiteralBooleanInterplet(value.value);
+      return LiteralBooleanInterplet(value.value, parsed.line);
     } else if (value.type === "Null") {
-      return LiteralNullInterplet();
+      return LiteralNullInterplet(parsed.line);
     } else if (value.type === "Number") {
-      return LiteralNumberInterplet(value.value);
+      return LiteralNumberInterplet(value.value, parsed.line);
     } else if (value.type === "String") {
-      return LiteralStringInterplet(value.value);
+      return LiteralStringInterplet(value.value, parsed.line);
     } else if (value.type === "Undefined") {
-      return LiteralUndefinedInterplet();
+      return LiteralUndefinedInterplet(parsed.line);
     }
   } else if (parsed.type === "BinaryNode") {
     if (parsed.id === "=" && parsed.assignment) {
@@ -996,10 +1007,10 @@ export let createInterp = function(parsed: Node): AstInterplet {
         }
         let target = left.left;
         
-        return ObjectAssignmentInterplet(createInterp(target), name.value, createInterp(right));
+        return ObjectAssignmentInterplet(createInterp(target), name.value, createInterp(right), parsed.line);
       }
 
-      return AssignmentInterplet(left.value, createInterp(right));
+      return AssignmentInterplet(left.value, createInterp(right), parsed.line);
     } else if (parsed.id === "let" && parsed.assignment) {
       let left = parsed.left;
       let right = createInterp(parsed.right);
@@ -1008,11 +1019,11 @@ export let createInterp = function(parsed: Node): AstInterplet {
         throw Error("Invalid assignment name");
       }
 
-      return LetInterplet(left.value, right);
+      return LetInterplet(left.value, right, parsed.line);
     } else if (indexOf(operators, parsed.id) > -1) {
       let left = createInterp(parsed.left);
       let right = createInterp(parsed.right);
-      return OperatorInterplet(parsed.id, left, right);
+      return OperatorInterplet(parsed.id, left, right, parsed.line);
     } else if (parsed.id === "(") {
       let left = createInterp(parsed.left);
       let right = parsed.right;
@@ -1032,12 +1043,12 @@ export let createInterp = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
 
-      return CallInterplet(left, args);
+      return CallInterplet(left, args, parsed.line);
     } else if (parsed.id === '[') {
       let left = createInterp(parsed.left);
       let right = createInterp(parsed.right);
 
-      return IndexInterplet(left, right);
+      return IndexInterplet(left, right, parsed.line);
     } else if (parsed.id === ".") {
       let left = createInterp(parsed.left);
       let right = parsed.right;
@@ -1046,10 +1057,10 @@ export let createInterp = function(parsed: Node): AstInterplet {
         throw Error("Invalid dot access");
       }
 
-      return DotInterplet(left, right.value);
+      return DotInterplet(left, right.value, parsed.line);
     }
   } else if (parsed.type === "Name") {
-    return NameInterplet(parsed.value);
+    return NameInterplet(parsed.value, parsed.line);
   } else if (parsed.type === "UnaryNode") {
     if (parsed.id === "{") {
       let keys: string[] = [];
@@ -1090,7 +1101,7 @@ export let createInterp = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
 
-      return LiteralObjectInterplet(keys, values);
+      return LiteralObjectInterplet(keys, values, parsed.line);
     } else if (parsed.id === "[") {
       let values: AstInterplet[] = [];
       let i = 0;
@@ -1110,16 +1121,16 @@ export let createInterp = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
 
-      return LiteralArrayInterplet(values);
+      return LiteralArrayInterplet(values, parsed.line);
     } else if (parsed.id === "-") {
       let value = createInterp(parsed.value);
-      return NegativeInterplet(value);
+      return NegativeInterplet(value, parsed.line);
     } else if (parsed.id === "typeof") {
       let value = createInterp(parsed.value);
-      return TypeofInterplet(value);
+      return TypeofInterplet(value, parsed.line);
     } else if (parsed.id === "...") {
       let value = createInterp(parsed.value);
-      return SpreadInterplet(value);
+      return SpreadInterplet(value, parsed.line);
     }
   } else if (parsed.type === "FunctionNode") {
     let parameters: string[] = [];
@@ -1151,10 +1162,10 @@ export let createInterp = function(parsed: Node): AstInterplet {
       i = i + 1;
     }
 
-    return FunctionInterplet(parameters, body);
+    return FunctionInterplet(parameters, body, parsed.line);
   } else if (parsed.type === "StatementNode") {
     if (parsed.id === "return") {
-      return ReturnInterplet(createInterp(parsed.value));
+      return ReturnInterplet(createInterp(parsed.value), parsed.line);
     } else if (parsed.id === "while") {
       let value = parsed.value;
 
@@ -1183,14 +1194,14 @@ export let createInterp = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
 
-      return WhileInterplet(left, block);
+      return WhileInterplet(left, block, parsed.line);
     } else if (parsed.id === "break") {
-      return BreakInterplet();
+      return BreakInterplet(parsed.line);
     } else if (parsed.id === "continue") {
-      return ContinueInterplet();
+      return ContinueInterplet(parsed.line);
     } else if (parsed.id === "throw") {
       let err = createInterp(parsed.value);
-      return ThrowInterplet(err);
+      return ThrowInterplet(err, parsed.line);
     }
   } else if (parsed.type === "TernaryNode") {
     if (parsed.id === "try") {
@@ -1228,7 +1239,7 @@ export let createInterp = function(parsed: Node): AstInterplet {
         guard = [...guard, createInterp(third.children[i])];
         i = i + 1;
       }
-      return TryInterplet(block, second.value, guard);
+      return TryInterplet(block, second.value, guard, parsed.line);
     } else if (parsed.id === "if") {
       let expr = createInterp(parsed.first);
       let ifTrue = parsed.second;
@@ -1248,7 +1259,7 @@ export let createInterp = function(parsed: Node): AstInterplet {
       }
       let ifFalse = parsed.third;
       if (ifFalse.id === "if") {
-        return IfInterplet(expr, trueBlock, [createInterp(ifFalse)]);
+        return IfInterplet(expr, trueBlock, [createInterp(ifFalse)], parsed.line);
       }
       if (ifFalse.type !== "StatementNode") {
         throw Error("Invalid if false block");
@@ -1265,7 +1276,7 @@ export let createInterp = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
 
-      return IfInterplet(expr, trueBlock, falseBlock);
+      return IfInterplet(expr, trueBlock, falseBlock, parsed.line);
     } else if (parsed.id === "(") {
       let first = createInterp(parsed.first);
       let second = parsed.second;
@@ -1291,13 +1302,13 @@ export let createInterp = function(parsed: Node): AstInterplet {
         i = i + 1;
       }
 
-      return MethodCallInterplet(first, second.value, args);
+      return MethodCallInterplet(first, second.value, args, parsed.line);
     } else if (parsed.id === "?") {
       let condition = createInterp(parsed.first);
       let ifTrue = createInterp(parsed.second);
       let ifFalse = createInterp(parsed.third);
 
-      return TernaryIfInterplet(condition, ifTrue, ifFalse);
+      return TernaryIfInterplet(condition, ifTrue, ifFalse, parsed.line);
     }
   }
   throw Error("failed");

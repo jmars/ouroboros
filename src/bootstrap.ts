@@ -1,4 +1,4 @@
-import { Frame, createInterp, NativeFunction } from './astinterp.js';
+import { createInterp, NativeFunction, Scope } from './astinterp.js';
 import { tokenize } from './lexer.js';
 import { parse } from './parser.js';
 import { indexOf, length } from './util-native.js';
@@ -13,7 +13,7 @@ export let main = function(rFS: typeof import('fs')['readFileSync'], log: typeof
   log('parsing');
   let tree = parse(tokens);
 
-  let frame: Frame = {
+  let scope: Scope = {
     locals: ['Infinity'],
     values: [Infinity],
     parent: null
@@ -25,13 +25,13 @@ export let main = function(rFS: typeof import('fs')['readFileSync'], log: typeof
   while (i < l) {
     let node = tree[i];
     let interp = createInterp(node);
-    interp.interpret(interp, frame);
+    interp.interpret(interp, scope);
     i = i + 1;
   }
 
   if (native) {
     log('starting')
-    let meta = frame.values[indexOf(frame.locals, 'main')];
+    let meta = scope.values[indexOf(scope.locals, 'main')];
     
     if (meta === null || typeof meta !== "object" || meta.type !== "function") {
       log("Invalid main function");
@@ -54,10 +54,10 @@ export let main = function(rFS: typeof import('fs')['readFileSync'], log: typeof
       parameters: ['path']
     }
 
-    let stack: Frame = {
+    let stack: Scope = {
       locals: ['rFS', 'log', 'native'],
       values: [iread, ilog, false],
-      parent: frame
+      parent: scope
     }
 
     i = 0;

@@ -63,6 +63,7 @@ interface ParseLet {
   lbp: number,
   type: Node["type"],
   value: Literal,
+  line: number,
   nud: (parselet: ParseLet) => Node,
   led: (parselet: ParseLet, left: Node) => Node,
   std: null | ((parselet: ParseLet) => Node),
@@ -87,6 +88,7 @@ let SymbolLiteral = function(value: string): Literal {
 
 interface BaseNode {
   id: Id,
+  line: number
 }
 
 interface LiteralNode extends BaseNode {
@@ -172,6 +174,7 @@ let symbol_table = {
     }
   }
 };
+
 let tokens: Token[];
 let token_nr: number = 0;
 let node: ParseLet;
@@ -207,12 +210,13 @@ let advance = function (id: string | undefined): ParseLet {
         type: "Name",
         lbp: 0,
         value: SymbolLiteral(v),
-        nud: function(parselet) {
+        line: line,
+        nud: function(parselet: ParseLet) {
           let value = parselet.value;
           if (value.type !== "Symbol") {
             throw Error("Unreachable");
           }
-          return { type: "Name", value: value.value, id: "(name)" };
+          return { type: "Name", value: value.value, id: "(name)", line: parselet.line };
         },
         led: function() {
           throw Error("Invalid name token");
@@ -237,8 +241,9 @@ let advance = function (id: string | undefined): ParseLet {
       id: "(literal)",
       type: "LiteralNode",
       lbp: 0,
+      line: line,
       value: StringLiteral(v),
-      nud: function(parselet) {
+      nud: function(parselet: ParseLet) {
         let value = parselet.value;
         if (value.type !== "String") {
           throw Error("Unreachable");
@@ -246,6 +251,7 @@ let advance = function (id: string | undefined): ParseLet {
         return {
           type: "LiteralNode",
           id: "(literal)",
+          line: parselet.line,
           value: {
             type: "String",
             value: value.value
@@ -265,8 +271,9 @@ let advance = function (id: string | undefined): ParseLet {
       id: "(literal)",
       type: "LiteralNode",
       lbp: 0,
+      line: line,
       value: NumberLiteral(v),
-      nud: function(parselet) {
+      nud: function(parselet: ParseLet) {
         let value = parselet.value;
         if (value.type !== "Number") {
           throw Error("Unreachable");
@@ -274,6 +281,7 @@ let advance = function (id: string | undefined): ParseLet {
         return {
           type: "LiteralNode",
           id: "(literal)",
+          line: parselet.line,
           value: {
             type: "Number",
             value: value.value
@@ -316,6 +324,7 @@ let statement = function () {
   let v = expression(0);
 
   if ((v.type !== "BinaryNode" || v.assignment === false) && v.id !== "(") {
+    console.log('===', line)
     throw Error("Bad expression statement.");
   }
 
@@ -365,8 +374,9 @@ let symbol = function (id: Id, bp: number | undefined): ParseLet {
       type: "LiteralNode",
       id: id,
       lbp: bp,
+      line: line,
       value: SymbolLiteral(id),
-      nud: function (parselet) {
+      nud: function (parselet: ParseLet) {
         throw Error(parselet.id + ": Undefined.");
       },
       led: function (ignore) {
@@ -382,9 +392,10 @@ let symbol = function (id: Id, bp: number | undefined): ParseLet {
 let constant = function (s: Id, v: Literal): ParseLet {
   let x = symbol(s, undefined);
   x.value = v;
-  x.nud = function(parselet) {
+  x.nud = function(parselet: ParseLet) {
     return {
       type: "LiteralNode",
+      line: parselet.line,
       value: parselet.value,
       id: parselet.id
     }
@@ -402,6 +413,7 @@ let infix = function (id: Id, bp: number, led: ParseLet["led"] | undefined): Par
     s.led = function (parselet, left) {
       return {
         type: "BinaryNode",
+        line: parselet.line,
         left: left,
         right: expression(parselet.lbp),
         assignment: false,
@@ -420,6 +432,7 @@ let infixr = function (id: Id, bp: number, led: ParseLet["led"] | undefined) {
     s.led = function (parselet, left) {
       return {
         type: "BinaryNode",
+        line: parselet.line,
         left: left,
         right: expression(parselet.lbp - 1),
         assignment: false,
@@ -441,6 +454,7 @@ let assignment = function (id: Id) {
     }
     return {
       type: "BinaryNode",
+      line: parselet.line,
       id: parselet.id,
       left: left,
       right: expression(0),
@@ -454,9 +468,10 @@ let prefix = function (id: Id, nud: ParseLet["nud"] | undefined) {
   if (nud !== undefined) {
     s.nud = nud;
   } else {
-    s.nud = function (parselet) {
+    s.nud = function (parselet: ParseLet) {
       return {
         type: "UnaryNode",
+        line: parselet.line,
         id: parselet.id,
         value: expression(70)
       }
@@ -500,6 +515,7 @@ infix("?", 20, function (parselet, left) {
   let third = expression(0);
   return {
     type: "TernaryNode",
+    line: parselet.line,
     id: '?',
     first: first,
     second: second,
@@ -533,6 +549,7 @@ infix(".", 80, function (parselet, left) {
   node = advance(undefined);
   return {
     type: "BinaryNode",
+    line: parselet.line,
     id: ".",
     left: left,
     right: n.nud(n),
@@ -543,6 +560,7 @@ infix(".", 80, function (parselet, left) {
 infix("[", 80, function (parselet, left) {
   let n: BinaryNode = {
     type: "BinaryNode",
+    line: parselet.line,
     id: "[",
     left: left,
     right: expression(0),
@@ -555,6 +573,7 @@ infix("[", 80, function (parselet, left) {
 infix("(", 80, function (parselet, left) {
   let a: NodeList = {
     type: "NodeList",
+    line: parselet.line,
     id: "(",
     children: []
   };
@@ -562,6 +581,7 @@ infix("(", 80, function (parselet, left) {
   if ((left.id === "." || left.id === "[") && left.type === "BinaryNode") {
     n = {
       type: "TernaryNode",
+      line: parselet.line,
       id: "(",
       first: left.left,
       second: left.right,
@@ -570,6 +590,7 @@ infix("(", 80, function (parselet, left) {
   } else {
     n = {
       type: "BinaryNode",
+      line: parselet.line,
       id: "(",
       left: left,
       right: a,
@@ -586,6 +607,7 @@ infix("(", 80, function (parselet, left) {
       throw Error("Expected a variable name.");
     }
   }
+  // TODO: get rid of the while true?
   if (node.id !== ")") {
     while (true) {
       a.children = [...a.children, expression(0)];
@@ -602,24 +624,27 @@ infix("(", 80, function (parselet, left) {
 prefix("-", undefined);
 prefix("typeof", undefined);
 
-prefix("(", function () {
+prefix("(", function (parselet: ParseLet) {
   let e = expression(0);
   node = advance(")");
   return e;
 });
 
-prefix("function", function () {
+prefix("function", function (parselet: ParseLet) {
   let n: Node = {
     type: "FunctionNode",
+    line: parselet.line,
     id: "function",
     name: "",
     parameters: {
       type: "NodeList",
+      line: parselet.line,
       id: "parameters",
       children: []
     },
     body: {
       type: "NodeList",
+      line: parselet.line,
       id: "body",
       children: []
     }
@@ -648,9 +673,11 @@ prefix("function", function () {
   if (length(children) === 0 || children[length(children) - 1].id !== "return") {
     children = [...children, {
       type: "StatementNode",
+      line: parselet.line,
       id: "return",
       value: {
         type: "LiteralNode",
+        line: parselet.line,
         id: "undefined",
         value: UNDEFINED
       }
@@ -661,9 +688,10 @@ prefix("function", function () {
   return n;
 });
 
-prefix("[", function () {
+prefix("[", function (parselet: ParseLet) {
   let a: NodeList = {
     type: "NodeList",
+    line: parselet.line,
     id: "[",
     children: []
   };
@@ -674,6 +702,7 @@ prefix("[", function () {
         let v = expression(0);
         a.children = [...a.children, {
           type: "UnaryNode",
+          line: parselet.line,
           id: "...",
           value: v
         }];
@@ -693,13 +722,14 @@ prefix("[", function () {
   node = advance("]");
   return {
     type: "UnaryNode",
+    line: parselet.line,
     id: "[",
     value: a
   };
 });
 
-prefix("{", function () {
-  let a: NodeList = { type: "NodeList", children: [], id: '{' };
+prefix("{", function (parselet: ParseLet) {
+  let a: NodeList = { type: "NodeList", children: [], id: '{', line: parselet.line };
   if (node.id !== "}") {
     while (true) {
       let n = node;
@@ -709,6 +739,7 @@ prefix("{", function () {
         v = expression(0);
         a.children = [...a.children, {
           type: "UnaryNode",
+          line: parselet.line,
           id: "...",
           value: v
         }];
@@ -727,6 +758,7 @@ prefix("{", function () {
       v = expression(0);
       a.children = [...a.children, {
         type: "BinaryNode",
+        line: parselet.line,
         assignment: false,
         id: ":",
         left: kn,
@@ -741,28 +773,32 @@ prefix("{", function () {
   node = advance("}");
   return {
     type: "UnaryNode",
+    line: parselet.line,
     id: "{",
     value: a
   };
 });
 
-stmt("{", function () {
+stmt("{", function (parselet: ParseLet) {
   let n: NodeList = {
     type: "NodeList",
+    line: parselet.line,
     id: "{",
     children: statements()
   };
   node = advance("}");
   return {
     type: "StatementNode",
+    line: parselet.line,
     id: "{",
     value: n
   };
 });
 
-stmt("throw", function() {
+stmt("throw", function(parselet: ParseLet) {
   let n: StatementNode = {
     type: "StatementNode",
+    line: parselet.line,
     id: "throw",
     value: expression(0)
   };
@@ -770,7 +806,7 @@ stmt("throw", function() {
   return n;
 });
 
-stmt("let", function () {
+stmt("let", function (parselet: ParseLet) {
   let n = node.nud(node);
   if (n.type !== "Name") {
     throw Error("Expected a new variable name.");
@@ -781,11 +817,13 @@ stmt("let", function () {
     node = advance(";");
     return {
       type: "BinaryNode",
+      line: parselet.line,
       assignment: true,
       id: "let",
       left: n,
       right: {
         type: "LiteralNode",
+        line: parselet.line,
         id: "undefined",
         value: UNDEFINED
       }
@@ -795,6 +833,7 @@ stmt("let", function () {
   node = advance("=");
   let assignment: BinaryNode = {
     type: "BinaryNode",
+    line: parselet.line,
     assignment: true,
     id: "let",
     left: n,
@@ -804,7 +843,7 @@ stmt("let", function () {
   return assignment;
 });
 
-stmt("if", function () {
+stmt("if", function (parselet: ParseLet) {
   node = advance("(");
   let first = expression(0);
   node = advance(")");
@@ -820,8 +859,10 @@ stmt("if", function () {
   } else {
     third = {
       type: "StatementNode",
+      line: parselet.line,
       id: '{',
       value: {
+        line: parselet.line,
         type: 'NodeList',
         id: '{',
         children: []
@@ -830,6 +871,7 @@ stmt("if", function () {
   }
   return {
     type: "TernaryNode",
+    line: parselet.line,
     id: "if",
     first: first,
     second: second,
@@ -837,7 +879,7 @@ stmt("if", function () {
   }
 });
 
-stmt("try", function () {
+stmt("try", function (parselet: ParseLet) {
   let first = block();
   node = advance("catch");
   node = advance("(");
@@ -846,6 +888,7 @@ stmt("try", function () {
   let third = block();
   return {
     type: "TernaryNode",
+    line: parselet.line,
     id: "try",
     first: first,
     second: second,
@@ -853,12 +896,13 @@ stmt("try", function () {
   }
 });
 
-stmt("return", function () {
+stmt("return", function (parselet: ParseLet) {
   let n: Node;
 
   if (node.id !== ";") {
     n = {
       type: "StatementNode",
+      line: parselet.line,
       id: "return",
       value: expression(0)
     }
@@ -866,9 +910,11 @@ stmt("return", function () {
   } else {
     n = {
       type: "StatementNode",
+      line: parselet.line,
       id: "return",
       value: {
         type: "LiteralNode",
+        line: parselet.line,
         id: "undefined",
         value: UNDEFINED
       }
@@ -882,48 +928,54 @@ stmt("return", function () {
   return n;
 });
 
-stmt("break", function () {
+stmt("break", function (parselet: ParseLet) {
   node = advance(";");
   if (node.id !== "}") {
     throw Error("Unreachable statement.");
   }
   return {
     type: "StatementNode",
+    line: parselet.line,
     id: "break",
     value: {
       type: "Name",
+      line: parselet.line,
       id: "break",
       value: "break"
     }
   };
 });
 
-stmt("continue", function () {
+stmt("continue", function (parselet: ParseLet) {
   node = advance(";");
   if (node.id !== "}") {
     throw Error("Unreachable statement.");
   }
   return {
     type: "StatementNode",
+    line: parselet.line,
     id: "continue",
     value: {
       type: "Name",
+      line: parselet.line,
       id: "continue",
       value: "continue"
     }
   };
 });
 
-stmt("while", function () {
+stmt("while", function (parselet: ParseLet) {
   node = advance("(");
   let left = expression(0);
   node = advance(")");
   let right = block();
   return {
     type: "StatementNode",
+    line: parselet.line,
     id: "while",
     value: {
       type: "BinaryNode",
+      line: parselet.line,
       id: "while",
       left: left,
       right: right,
