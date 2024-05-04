@@ -282,7 +282,24 @@ let tokenize = function (string, prefix, suffix, log) {
                         throw Error("Unterminated string");
                     }
                     c = charcode(string[i]);
-                    // Handle escape characters here
+                    if (c === charcode("b")) {
+                        c = charcode("\b");
+                    }
+                    else if (c === charcode("f")) {
+                        c = charcode("\f");
+                    }
+                    else if (c === charcode("n")) {
+                        c = charcode("\n");
+                    }
+                    else if (c === charcode("r")) {
+                        c = charcode("\r");
+                    }
+                    else if (c === charcode("t")) {
+                        c = charcode("\t");
+                    }
+                    else if (c === charcode("u")) {
+                        throw Error("Unicode escapes not supported");
+                    }
                 }
                 str = str + codechar(c);
                 i = i + 1;
