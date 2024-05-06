@@ -1,4 +1,5 @@
 # Ouroboros
+![Ouroboros-solomon](./img/alchemy.jpg)
 
 A metacircular evaluator for a subset of javascript connected to a runtime extensible top down operator precedence parser.
 
