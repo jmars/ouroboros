@@ -19,8 +19,8 @@ describe('tokenize', () => {
     const result = tokenize("123 456.78 9e10", [], [], console.log);
     expect(result).toEqual([
       { type: "number", value: 123, from: 0, to: 3, line: 1 },
-      { type: "number", value: 456.78, from: 4, to: 11, line: 1 },
-      { type: "number", value: 9e10, from: 12, to: 16, line: 1 }
+      { type: "number", value: 456.78, from: 4, to: 10, line: 1 },
+      { type: "number", value: 9e10, from: 11, to: 15, line: 1 }
     ]);
   });
 
@@ -36,7 +36,7 @@ describe('tokenize', () => {
     const result = tokenize("'str\\'ing' \"ano\\\"ther\"", [], [], console.log);
     expect(result).toEqual([
       { type: "string", value: "str'ing", from: 0, to: 10, line: 1 },
-      { type: "string", value: "ano\"ther", from: 11, to: 21, line: 1 }
+      { type: "string", value: "ano\"ther", from: 11, to: 22, line: 1 }
     ]);
   });
 

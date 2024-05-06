@@ -23,6 +23,9 @@ export let isFinite = function (n: number) {
 };
 
 export let charcode = function (a: string) {
+  if (a === undefined) {
+    debugger;
+  }
   return a.charCodeAt(0);
 };
 

@@ -323,10 +323,12 @@ let statement = function () {
 
   let v = expression(0);
 
+  /*
   if ((v.type !== "BinaryNode" || v.assignment === false) && v.id !== "(") {
-    console.log('===', line)
+    debugger;
     throw Error("Bad expression statement.");
   }
+  */
 
   node = advance(";");
   return v;
@@ -392,6 +394,7 @@ let symbol = function (id: Id, bp: number | undefined): ParseLet {
 let constant = function (s: Id, v: Literal): ParseLet {
   let x = symbol(s, undefined);
   x.value = v;
+  x.id = "(literal)";
   x.nud = function(parselet: ParseLet) {
     return {
       type: "LiteralNode",
