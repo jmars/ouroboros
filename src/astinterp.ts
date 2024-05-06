@@ -1,5 +1,5 @@
 import { Node } from "./parser.js";
-import { length, indexOf, lastIndexOf } from "./util-native.js";
+import { length, indexOf, lastIndexOf, numberToString } from "./util-native.js";
 
 type Value
   = string
@@ -676,7 +676,7 @@ let DotInterplet = function(target: AstInterplet, key: string, line: number): Do
       let target = self.target.interpret(self.target, scope);
 
       if (target === null || typeof target !== "object" || target.type !== "object") {
-        throw Error("Dot syntax can only be used on objects");
+        throw Error("Line: " + numberToString(self.line) +  " | Dot syntax can only be used on objects, key: " + self.key);
       }
 
       if (indexOf(target.keys, self.key) === -1) {

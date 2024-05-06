@@ -1,5 +1,5 @@
 import { Token } from './lexer.js';
-import { indexOf, length } from './util-native.js';
+import { indexOf, length, numberToString } from './util-native.js';
 
 type Id
   = "(name)"
@@ -182,7 +182,7 @@ let line: number = 1;
 
 let advance = function (id: string | undefined): ParseLet {
   if (id !== undefined && node.id !== id) {
-    throw Error("Expected '" + id + "', got '" + node.id + "'");
+    throw Error("Line:  " + numberToString(line) + " | Expected '" + id + "', got '" + node.id + "'");
   }
   if (token_nr >= length(tokens)) {
     let n = symbol_table.read(symbol_table, "(end)");
@@ -230,7 +230,7 @@ let advance = function (id: string | undefined): ParseLet {
     }
     let o = symbol_table.read(symbol_table, v);
     if (o === undefined) {
-      throw Error("Unknown operator.");
+      throw Error("Line: " + numberToString(line) + " | Unknown operator.");
     }
     return o;
   } else if (a === "string") {

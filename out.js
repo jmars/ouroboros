@@ -33,13 +33,19 @@ let parseInt = function (str) {
     let i = length(str) - 1;
     let n = 0;
     let e = 1;
+    let hasDigit = false;
     while (i >= 0) {
         let c = str[i];
-        n = n + (indexOf(charVals, c) * e);
+        let digitIndex = indexOf(charVals, c);
+        if (digitIndex === -1) {
+            return NaN;
+        }
+        hasDigit = true;
+        n = n + (digitIndex * e);
         e = e * 10;
         i = i - 1;
     }
-    return n;
+    return hasDigit ? n : NaN;
 };
 let parseFloat = function (str) {
     let h = "";
@@ -61,120 +67,37 @@ let parseFloat = function (str) {
         }
         i = i + 1;
     }
-    return parseInt(h) + (parseInt(d) / (10 ** length(d)));
+    if (d === "") {
+        return parseInt(h);
+    }
+    else {
+        return parseInt(h) + (parseInt(d) / (10 ** length(d)));
+    }
 };
 let isFinite = function (n) {
     return n !== Infinity;
 };
 let ascii = [
-    "\b",
-    "\t",
-    "\n",
-    "\f",
-    "\r",
-    " ",
-    "!",
-    "\"",
-    "#",
-    "$",
-    "%",
-    "&",
-    "'",
-    "(",
-    ")",
-    "*",
-    "+",
-    ",",
-    "-",
-    ".",
-    "/",
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    ":",
-    ";",
-    "<",
-    "=",
-    ">",
-    "?",
-    "@",
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "J",
-    "K",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "U",
-    "V",
-    "W",
-    "X",
-    "Y",
-    "Z",
-    "[",
-    "\\",
-    "]",
-    "^",
-    "_",
-    "`",
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-    "h",
-    "i",
-    "j",
-    "k",
-    "l",
-    "m",
-    "n",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
-    "t",
-    "u",
-    "v",
-    "w",
-    "x",
-    "y",
-    "z",
-    "{",
-    "|",
-    "}",
-    "~"
+    " ", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
+    "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+    "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\", "]", "^", "_",
+    "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~"
 ];
 let charcode = function (a) {
-    let code = indexOf(ascii, a);
-    return code;
+    let index = ascii.indexOf(a);
+    if (index === -1) {
+        return -1;
+    }
+    return index + 32;
 };
 let codechar = function (a) {
-    let char = ascii[a];
-    return char;
+    let index = a - 32;
+    if (index < 0 || index >= ascii.length) {
+        return "";
+    }
+    return ascii[index];
 };
 let Error = function (msg) {
     return {
@@ -182,14 +105,44 @@ let Error = function (msg) {
         message: msg
     };
 };
+let numberToString = function (num) {
+    if (num === 0) {
+        return "0";
+    }
+    let digitToChar = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    let isNegative = num < 0;
+    let result = "";
+    if (isNegative) {
+        num = -num;
+    }
+    while (num > 0) {
+        let digit = 0;
+        let n = num;
+        while (n >= 10) {
+            n = n - 10;
+        }
+        digit = n;
+        result = digitToChar[digit] + result;
+        let tempNum = 0;
+        while (num >= 10) {
+            num = num - 10;
+            tempNum = tempNum + 1;
+        }
+        num = tempNum;
+    }
+    if (isNegative) {
+        result = "-" + result;
+    }
+    return result;
+};
 let tokenize = function (string, prefix, suffix, log) {
-    if (string === undefined) {
+    let len = length(string);
+    if (string === undefined || len === 0) {
         return [];
     }
     let i = 0;
     let line = 1;
     let c = charcode(string[i]);
-    let len = length(string);
     let n = 0;
     let result = [];
     let str = "";
@@ -394,7 +347,7 @@ let node;
 let line = 1;
 let advance = function (id) {
     if (id !== undefined && node.id !== id) {
-        throw Error("Expected '" + id + "', got '" + node.id + "'");
+        throw Error("Line:  " + numberToString(line) + " | Expected '" + id + "', got '" + node.id + "'");
     }
     if (token_nr >= length(tokens)) {
         let n = symbol_table.read(symbol_table, "(end)");
@@ -444,7 +397,7 @@ let advance = function (id) {
         }
         let o = symbol_table.read(symbol_table, v);
         if (o === undefined) {
-            throw Error("Unknown operator.");
+            throw Error("Line: " + numberToString(line) + " | Unknown operator.");
         }
         return o;
     }
@@ -1630,7 +1583,7 @@ let DotInterplet = function (target, key, line) {
         interpret: function (self, scope) {
             let target = self.target.interpret(self.target, scope);
             if (target === null || typeof target !== "object" || target.type !== "object") {
-                throw Error("Dot syntax can only be used on objects");
+                throw Error("Line: " + numberToString(self.line) + " | Dot syntax can only be used on objects, key: " + self.key);
             }
             if (indexOf(target.keys, self.key) === -1) {
                 throw Error("Key does not exist on object");

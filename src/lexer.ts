@@ -9,14 +9,15 @@ export type Token = {
 }
 
 export let tokenize = function (string: string, prefix: string[], suffix: string[], log: any) {
-  if (string === undefined) {
+  let len: number = length(string);
+
+  if (string === undefined || len === 0) {
     return [];
   }
 
   let i: number = 0;
   let line: number = 1;
   let c: number = charcode(string[i]);
-  let len: number = length(string);
   let n: number = 0;
   let result: Token[] = [];
   let str: string = "";

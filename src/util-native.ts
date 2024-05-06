@@ -29,3 +29,7 @@ export let charcode = function (a: string) {
 export let codechar = function (a: number) {
   return String.fromCharCode(a);
 };
+
+export let numberToString = function(number: number): string {
+  return number.toString();
+};
